@@ -15,7 +15,7 @@ Lightweight, provider-independent agent + skill package for Claude Code that cut
 | Usage measurement + baseline-vs-AOS compare | Parser tested on a **synthetic** transcript; not yet validated on a live Claude Code transcript. Prices are null (not invented). |
 | Token/cost savings, 20-40% targets | **Unmeasured.** Targets only; run `docs/BENCHMARKS.md`. |
 | Agents/skills/commands loading in a live Claude Code session | Files are well-formed (tested); **live invocation not yet verified** in this environment. |
-| Other projects' history (dk-Service, QITL, ...) | **Not learned yet**: only the repo attached at build time was accessible. See "Onboarding". |
+| Project history and scoping | **Deferred to Phase 2** (`aos/docs/ROADMAP.md`); AOS ships generic with empty memory and registry. |
 
 ## Install
 ```bash

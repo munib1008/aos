@@ -1,45 +1,11 @@
-# Project registry. `status` is what AOS has VERIFIED, not what is assumed.
-# Known names come from the user's brief; repos are only confirmed when seen via an authorised listing.
+# Project registry - intentionally EMPTY in Phase 1 (generic AOS). Project review and scoping is Phase 2.
+# Without an entry, AOS uses the repo directory name as the project id and memory starts empty.
+# Entry format (map keyed by project id; `repo` is matched against the git origin URL):
+#
+# projects:
+#   my-project:
+#     repo: owner/name
+#     status: verified-accessible   # record what is VERIFIED, not assumed
+#     note: "one line"
 version: 1
-projects:
-  globevpn:
-    repo: munib1008/Claude
-    status: verified-accessible
-    note: "Repo 'Claude' contains the GlobeVPN Android/Kotlin app (confirmed from README)"
-  dk-service:
-    repo: munib1008/dk-Service
-    status: listed-not-attached
-    note: "dormakaba Service 360 (per user). Attach with add_repo, then run /aos-scan"
-  qitl:
-    repo: munib1008/QITL
-    status: listed-not-attached
-  ziq:
-    repo: zivarallc-code/ZIQ
-    status: unverified-not-in-listing
-    note: "Not in the authorised repo listing; needs access from the user"
-  zivara:
-    repo: zivarallc-code/ZI
-    status: unverified-not-in-listing
-  mu-ai:
-    repo: munib1008/Mu.ai
-    status: listed-not-attached
-  nuzl-app:
-    repo: munib1008/nuzl-app
-    status: listed-not-attached
-  nuzl-api:
-    repo: munib1008/nuzl-api
-    status: listed-not-attached
-  forex-bot-cbot:
-    repo: null
-    status: not-found
-    note: "No matching repo in listing"
-  packpickup:
-    repo: null
-    status: not-found
-  lisan-ai:
-    repo: null
-    status: not-found
-  sap-material-planning:
-    repo: null
-    status: not-found
-    note: "Likely files/spreadsheets, not a repo; provide an export or path"
+projects: {}

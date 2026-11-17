@@ -146,3 +146,73 @@ def summarize(rows: list[dict]) -> list[dict]:
 def import_results(path: Path) -> list[dict]:
     """Load measurements produced elsewhere (e.g. by running the suite through Claude Code/Codex). Same row schema as run_target."""
     return [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+
+
+def by_category(rows: list[dict]) -> dict:
+    out: dict = {}
+    for r in rows:
+        c = out.setdefault(r["target"], {}).setdefault(r["category"], {"n": 0, "ok": 0})
+        c["n"] += 1
+        c["ok"] += 1 if r["success"] else 0
+    return out
+
+
+def report(rows: list[dict], threshold: float = 0.8, min_n: int = 3) -> str:
+    """Markdown comparison + verdict. Verdicts only use measured rows; thin samples are called out, unknown prices stay unknown."""
+    summ = summarize(rows)
+    cats = by_category(rows)
+    L = ["# Model-quality comparison", "", f"Tasks per target: {summ[0]['tasks'] if summ else 0}. Graders are deterministic; python_tests executes model code in a subprocess (not a sandbox).", "",
+         "| Target | Kind | Completion | First try | Attempts | Latency s | Tokens/success | Cost/success USD | Note |", "|---|---|---|---|---|---|---|---|---|"]
+    for s_ in summ:
+        cps = s_["cost_per_success_usd"]
+        L.append(f"| {s_['target']} | {s_['kind']} | {s_['completion_rate']:.0%} | {s_['first_try_rate']:.0%} | {s_['mean_attempts']} | {s_['mean_latency_s']} | {s_['tokens_per_success']}{'*' if s_['tokens_estimated_any'] else ''} | "
+                 f"{'unknown' if cps is None and s_['kind'] not in ('local', 'free_tier') else (cps if cps is not None else 'no provider charge')} | {s_['cost_note']} |")
+    L += ["", "`*` tokens estimated (endpoint did not report usage). Local electricity/wear is not counted.", "", "## Per category (completion, n)"]
+    L.append("| Target | " + " | ".join(sorted({c for t in cats.values() for c in t})) + " |")
+    allc = sorted({c for t in cats.values() for c in t})
+    L.append("|---|" + "---|" * len(allc))
+    for t, cc in cats.items():
+        L.append(f"| {t} | " + " | ".join(f"{cc[c]['ok']}/{cc[c]['n']}" if c in cc else "-" for c in allc) + " |")
+    L += ["", "## Verdict (rules: completion >= %d%%, at least %d samples per category)" % (int(threshold * 100), min_n)]
+    for t, cc in cats.items():
+        kind = next(x["kind"] for x in summ if x["target"] == t)
+        ok = sorted(c for c, v in cc.items() if v["n"] >= min_n and v["ok"] / v["n"] >= threshold)
+        thin = sorted(c for c, v in cc.items() if v["n"] < min_n)
+        bad = sorted(c for c, v in cc.items() if v["n"] >= min_n and v["ok"] / v["n"] < threshold)
+        L.append(f"- **{t}** ({kind}): reliable for {ok or 'nothing yet'}; below threshold: {bad or 'none'}; too few samples: {thin or 'none'}.")
+    loc = [x for x in summ if x["kind"] == "local"]
+    cloud = [x for x in summ if x["kind"] != "local"]
+    if loc and cloud:
+        lo = {c for c, v in cats[loc[0]["target"]].items() if v["n"] >= min_n and v["ok"] / v["n"] >= threshold}
+        L.append("")
+        L.append(f"**Offload candidates** (local reliable, verify outputs with tests): {sorted(lo) or 'none'}. Everything else stays on the cloud/subscription model.")
+        priced = [x for x in cloud if x["cost_per_success_usd"] is not None]
+        if priced:
+            L.append(f"Cheapest priced cloud target per success: {min(priced, key=lambda x: x['cost_per_success_usd'])['target']}.")
+        else:
+            L.append("Cloud cost per success is **unknown** (no price configured): set `price_per_mtok` to compare money; token counts are shown above.")
+    else:
+        L.append("\nNeed at least one local and one non-local target to compare.")
+    return "\n".join(L) + "\n"
+
+
+def doctor(base_url: str, model: str | None = None) -> dict:
+    """First-run check for a local endpoint: reachable? which models? can it answer one trivial prompt?"""
+    out = {"base_url": base_url, "reachable": False, "models": [], "smoke": None, "advice": []}
+    try:
+        c = OpenAICompatClient(base_url, model)
+        out["models"] = c.list_models()
+        out["reachable"] = True
+    except LocalAdapterError as e:
+        out["advice"] += [f"cannot reach {base_url}: {e}", "start your engine (e.g. `ollama serve`, or `llama-server -m model.gguf --port 8080`) and pass its /v1 URL"]
+        return out
+    if not out["models"]:
+        out["advice"].append("no models served: e.g. `ollama pull <model>` (pick a size from `tccm.py inventory`; verify the licence)")
+        return out
+    m = model or out["models"][0]
+    try:
+        r = OpenAICompatClient(base_url, m).chat("Reply with the single word: pong", max_tokens=16)
+        out["smoke"] = {"model": m, "latency_s": r["latency_s"], "reply": r["text"][:60], "usage_reported": r["usage_reported"]}
+    except LocalAdapterError as e:
+        out["advice"].append(f"model {m} failed a trivial prompt: {e}")
+    return out

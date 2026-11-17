@@ -326,6 +326,28 @@ class Benchmark(unittest.TestCase):
         self.assertEqual(len(um.entries(r)), len(rows))                 # benchmark runs are recorded in the ledger
         self.assertTrue((r / ".aos/benchmarks/model_quality.jsonl").exists())
 
+    def test_report_verdict_and_doctor(self):
+        r = repo(); suite = mq.load_suite(); rows = []
+        for name, kind, good, price in (("loc", "local", True, None), ("cloud", "paid_api", True, {"input": 3, "output": 15}), ("weakloc", "local", False, None)):
+            srv, url, st = fakeserver.serve(answer_table(good))
+            try:
+                rows += mq.run_target(r, {"name": name, "kind": kind, "base_url": url, "model": "m", "price_per_mtok": price}, suite, 3, 2, record=False)
+            finally:
+                srv.shutdown()
+        md = mq.report(rows)
+        self.assertIn("| loc | local | 100%", md); self.assertIn("| weakloc | local |", md)
+        self.assertIn("Offload candidates", md); self.assertIn("Cheapest priced cloud target per success: cloud", md)
+        self.assertIn("reliable for ['classification'", md.split("**loc**")[1].split("\n")[0])
+        self.assertIn("reliable for nothing yet", md.split("**weakloc**")[1].split("\n")[0])
+        only = mq.report([x for x in rows if x["target"] == "loc"])
+        self.assertIn("Need at least one local and one non-local", only)
+        srv, url, st = fakeserver.serve(lambda p, n: "pong")
+        try:
+            d = mq.doctor(url); self.assertTrue(d["reachable"] and d["smoke"]["reply"] == "pong")
+        finally:
+            srv.shutdown()
+        d = mq.doctor("http://127.0.0.1:1/v1"); self.assertFalse(d["reachable"]); self.assertTrue(any("ollama serve" in x for x in d["advice"]))
+
     def test_missing_usage_is_flagged_estimated_and_unreachable_target_fails_cleanly(self):
         srv, url, st = fakeserver.serve(lambda p, n: "bug", report_usage=False)
         try:

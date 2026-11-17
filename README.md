@@ -28,7 +28,7 @@ Check files: `cd dist && sha256sum -c SHA256SUMS`. From a clone: `python3 aos/in
 | 107 unit tests (router, memory, index, context, sessions, handoff, video, Codex export, TCCM with a mock OpenAI endpoint, profiles, packaging, dormakaba suite on the built profile) | pass |
 | All 8 zips unzip, validate against the Agent Skills rules, run a script smoke test, contain no secrets, no profile leakage | pass (`package.py verify`) |
 | Context loading vs grep+read: 0.01-0.24x tokens, higher recall on 5 repos (`aos/docs/BENCHMARKS.md`) | measured, **proxy only** |
-| Real local / low-cost / strong model comparison, cost per successful task | **not run**: no GPU, engine or model access in the build sandbox; harness is ready |
+| Real local / low-cost / strong model comparison, cost per successful task | **not run**: no GPU, engine or model access in the build sandbox; harness + one-command runner ready (`aos/docs/RUN_BENCHMARK.md`) |
 | Live loading in Claude Code, Codex, claude.ai | **not verified** here (files are spec-valid) |
 | End-to-end cost savings | **unmeasured** |
 | Priors for model success rates | **uncalibrated assumptions**, flagged in output; replaced by measured stats at 5+ samples |

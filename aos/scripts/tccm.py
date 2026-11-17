@@ -60,8 +60,8 @@ def main(argv=None) -> int:
     c = sub.add_parser("cache"); c.add_argument("action", choices=["stats", "clear"])
     d = sub.add_parser("dashboard"); d.add_argument("--html", action="store_true"); d.add_argument("--mode")
     sub.add_parser("plan"); sub.add_parser("credits")
-    bn = sub.add_parser("bench"); bn.add_argument("action", choices=["run", "summary", "import"]); bn.add_argument("--target", action="append", default=[]); bn.add_argument("--repeats", type=int, default=1)
-    bn.add_argument("--suite"); bn.add_argument("file", nargs="?")
+    bn = sub.add_parser("bench"); bn.add_argument("action", choices=["run", "summary", "import", "report", "doctor"]); bn.add_argument("--target", action="append", default=[]); bn.add_argument("--repeats", type=int, default=1)
+    bn.add_argument("--suite"); bn.add_argument("file", nargs="?"); bn.add_argument("--url", default="http://localhost:11434/v1"); bn.add_argument("--model"); bn.add_argument("--report-out")
     s = sub.add_parser("switch"); s.add_argument("action", nargs="?", default="plan", choices=["plan", "exhausted"]); s.add_argument("--provider", required=True); s.add_argument("--reason", default="usage limit reached"); s.add_argument("--hours", type=float)
     a = ap.parse_args(argv)
     root = find_root(a.root)
@@ -112,6 +112,14 @@ def main(argv=None) -> int:
                     tg["price_per_mtok"] = {"input": float(parts[4]), "output": float(parts[5])}
                 rows += mq.run_target(root, tg, suite, a.repeats)
             pj(mq.summarize(rows))
+            if a.report_out:
+                Path(a.report_out).write_text(mq.report(rows), encoding="utf-8")
+                print("report ->", a.report_out)
+        elif a.action == "doctor":
+            pj(mq.doctor(a.url, a.model))
+        elif a.action == "report":
+            rows = mq.import_results(qp) if qp.exists() else []
+            print(mq.report(rows) if rows else "no benchmark results yet: run `tccm.py bench run` first")
         elif a.action == "import":
             rows = mq.import_results(Path(a.file))
             qp.parent.mkdir(exist_ok=True)

@@ -1,0 +1,58 @@
+# TCCM routing / estimation / cache policy (local-inference settings live in compute.yaml). ALL numbers marked "prior" are uncalibrated assumptions
+# that are replaced by measured results (.aos/usage ledger + model-quality benchmark) once enough samples exist.
+version: 1
+default_mode: balanced          # local_first | balanced | quality_first
+
+modes:
+  local_first:
+    min_p_local: 0.5            # use a local model only if its (measured or prior) success probability >= this
+    non_local_cost_multiplier: 3.0
+  balanced: {}
+  quality_first:
+    difficult_level: 3          # task level >= this -> maximise success probability among eligible models
+
+estimation:
+  output_to_input_ratio: 0.25   # prior: expected output tokens as a fraction of input tokens
+  max_output_tokens: 8000
+  local_cost_usd_per_mtok: 0.0  # electricity/wear ignored by default; set if you want to account for it
+  failure_penalty_usd: 0.10     # ranking-only penalty per expected failed attempt (NOT counted as spend)
+  latency_penalty_usd_per_min: 0.02   # ranking-only
+  latency_prior_s: {local: 60, cloud: 15}
+  max_attempts: 3
+  # Subscription/credit allowances are scarce even when marginal USD is 0. For RANKING ONLY (never reported as spend) each
+  # tier gets a shadow price so the strongest model is not chosen for trivial work. Assumptions - tune from your usage.
+  shadow_usd_per_mtok_per_cost_multiplier: 5.0   # models with a platform cost_multiplier rank by multiplier * this (ranking only)
+  shadow_usd_per_mtok_by_tier: {small: 0.5, balanced: 2.0, strong: 5.0, strongest: 10.0}
+
+routing:
+  tier_rank: {small: 0, balanced: 1, strong: 2, strongest: 3}
+  min_tier_by_level: {3: balanced, 4: strong}       # critical work never goes below this tier, whatever the cost ranking says
+  category_min_level: {feature: 2, debugging: 2, architecture: 3, security_critical: 3}   # corrects keyword-heuristic under-rating
+
+priors:
+  min_samples: 5                # measured stats override priors at this many samples per (model, category)
+  success:                      # prior P(success) by model tier and task level (assumptions, not measurements)
+    local_small: {1: 0.70, 2: 0.30, 3: 0.08, 4: 0.01}
+    local_mid:   {1: 0.85, 2: 0.55, 3: 0.20, 4: 0.03}
+    local_large: {1: 0.92, 2: 0.70, 3: 0.40, 4: 0.10}
+    small:       {1: 0.90, 2: 0.60, 3: 0.25, 4: 0.05}
+    balanced:    {1: 0.97, 2: 0.88, 3: 0.60, 4: 0.25}
+    strong:      {1: 0.98, 2: 0.93, 3: 0.78, 4: 0.45}
+    strongest:   {1: 0.99, 2: 0.96, 3: 0.88, 4: 0.60}
+
+task_categories:
+  deterministic_first: [repo_search, test_summary, diff_summary, lookup]    # use scripts, not an LLM, where possible
+  local_suitable:                                       # category -> minimum local model size in billions of params (heuristic)
+    classification: 1
+    summarization: 3
+    documentation: 3
+    repo_search_assist: 3
+    code_explanation: 7
+    small_change: 7
+    transform: 3
+  never_unverified_local: [security_critical]           # local output needs verification by a stronger model
+
+cache:
+  default_ttl_s: 86400
+  require_temperature_zero: true
+  max_entries: 5000

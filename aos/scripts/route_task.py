@@ -52,6 +52,10 @@ def level_for(scores: dict, cfg: dict) -> tuple[int, int, list[str]]:
         if scores.get(dim, 0) >= 3 and level < floor:
             level = floor
             reasons.append(f"override: {dim}=3 forces level >= {floor}")
+    for dim, floor in (c.get("floor_at_score_2") or {}).items():
+        if scores.get(dim, 0) >= 2 and level < floor:
+            level = floor
+            reasons.append(f"override: {dim}>=2 forces level >= {floor}")
     return level, total, reasons
 
 

@@ -1,0 +1,43 @@
+# Skill registry for scripts/select_skills.py. Keywords are heuristics; selection is a recommendation.
+version: 1
+skills:
+  aos-optimize:
+    keywords: [task, feature, implement, develop]
+  aos-repo-scan:
+    keywords: [repository, codebase, where is, find, locate]
+  aos-context:
+    keywords: [context, token, compact, budget]
+  aos-task-router:
+    keywords: [route, complexity, which model, level]
+  aos-learning:
+    keywords: [lesson, learn, remember, memory]
+  aos-session-fork:
+    keywords: [fork, parallel, worktree, split]
+  aos-handoff:
+    keywords: [handoff, hand over, switch provider, continue in]
+  aos-validation:
+    keywords: [test, validate, verify, quality, regression]
+  aos-video:
+    keywords: [video, subtitle, voiceover, render, storyboard, ffmpeg]
+  humanizer:
+    keywords: [humanize, sounds like ai, de-ai, rewrite text, clean up text]
+  aos-api-development:
+    keywords: [api, endpoint, rest, graphql, webhook, integration, oauth]
+  aos-database:
+    keywords: [database, schema, migration, sql, index, query, table, rls]
+  aos-ui-ux:
+    keywords: [ui, ux, component, frontend, layout, form, dashboard, css, react, vue, angular, accessibility]
+  aos-automation:
+    keywords: [automation, workflow, script, cron, pipeline, etl, sap, power automate, scheduled]
+  aos-research:
+    keywords: [research, investigate, compare, evaluate, options, survey, analysis]
+  aos-ai-ml:
+    keywords: [ml, machine learning, llm, prompt, embedding, rag, classifier, computer vision]
+  aos-security-review:
+    keywords: [security, auth, permission, secret, vulnerab, injection, xss, csrf, encrypt, access control]
+  aos-token-capacity:
+    keywords: [capacity, quota, budget, spend, usage, tokens left, dashboard, credits]
+  aos-local-inference:
+    keywords: [local model, ollama, llama.cpp, vllm, offline, on-device, gpu]
+  aos-model-routing:
+    keywords: [route model, cheapest model, which model, free tier, escalate, fallback, limit reached]

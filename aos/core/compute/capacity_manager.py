@@ -83,7 +83,7 @@ def model_memory_gb(params_b: float, quant: str, cfg: dict) -> float:
 
 
 def recommend_local(hw: dict, cfg: dict | None = None) -> dict:
-    cfg = cfg or load_config("compute")
+    cfg = cfg or {**load_config("routing"), **load_config("compute")}
     lm = cfg["local_models"]
     vram = max([g["vram_total_gb"] or 0 for g in hw["gpus"]] or [0])
     unified = any("metal" in a for a in hw["acceleration"])
@@ -119,7 +119,7 @@ def recommend_local(hw: dict, cfg: dict | None = None) -> dict:
 
 
 def inventory(root: Path | None = None, probe: bool = True) -> dict:
-    cfg = load_config("compute", root)
+    cfg = {**load_config("routing", root), **load_config("compute", root)}
     hw = hardware_inventory()
     inv = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "hardware": hw, "engines": lma.detect_engines() if probe else [],
            "local_recommendation": recommend_local(hw, cfg)}

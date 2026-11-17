@@ -52,12 +52,12 @@ class PackageIntegrity(unittest.TestCase):
 
     def test_skills_agents_commands_wellformed(self):
         skills = sorted((AOS / "skills").glob("*/SKILL.md"))
-        self.assertEqual(len(skills), 9)
+        self.assertGreaterEqual(len(skills), 18)
         for s in skills:
             f = self.fm(s)
             self.assertEqual(f["name"], s.parent.name)
-            self.assertTrue(0 < len(f["description"]) <= 400, s)
-            self.assertLess(len(s.read_text().splitlines()), 40, f"{s} should stay concise")
+            self.assertTrue(0 < len(f["description"]) <= 1024, s)
+            self.assertLess(len(s.read_text().splitlines()), 120, f"{s} should stay concise")
         agents = sorted((AOS / "agents").glob("*.md"))
         self.assertEqual(len(agents), 9)
         for a in agents:
@@ -69,8 +69,7 @@ class PackageIntegrity(unittest.TestCase):
         for c in (AOS / "commands").glob("*.md"):
             body = c.read_text()
             self.assertTrue(any(n in body for n in skill_names), c)
-        self.assertEqual({c.stem for c in (AOS / "commands").glob("*.md")},
-                         {"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit", "aos-video"})
+        self.assertTrue({"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit", "aos-video"} <= {c.stem for c in (AOS / "commands").glob("*.md")})
 
     def test_every_script_referenced_exists_and_has_help(self):
         import re, subprocess, sys

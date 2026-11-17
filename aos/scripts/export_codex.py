@@ -22,9 +22,9 @@ from validate_skills import CODEX_CAP, split_frontmatter, validate_skill
 KEEP = ("name", "description", "license", "compatibility")
 
 
-def tr(text: str, in_place: bool) -> str:
+def tr(text: str, prefix: str | None) -> str:
     text = text.replace("$ARGUMENTS", "the user's request").replace("/aos-", "the aos-")
-    return text if in_place else text.replace("aos/scripts/", ".codex/aos/scripts/").replace("aos/docs/", ".codex/aos/docs/")
+    return text if prefix is None else text.replace("aos/scripts/", f"{prefix}/scripts/").replace("aos/docs/", f"{prefix}/docs/")
 
 
 def skill_md(fm: dict, body: str) -> str:
@@ -38,36 +38,42 @@ def toml_str(v: str) -> str:
     return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def export(target: Path, in_place: bool = False) -> dict:
+def export(target: Path, in_place: bool = False, src: Path | None = None, prefix: str | None = ".codex/aos") -> dict:
+    src = src or AOS_DIR
+    prefix = None if in_place else prefix
     out_skills = target / ".codex" / "skills"
     out_agents = target / ".codex" / "agents"
-    models = load_config("models").get("codex_model_map") or {}
+    models = (__import__("aos_lib").parse_yaml((src / "config" / "models.yaml").read_text()).get("codex_model_map")) or {}
     made = {"skills": [], "agents": []}
     names = set()
-    for sk in sorted((AOS_DIR / "skills").glob("*/SKILL.md")):
+    for sk in sorted((src / "skills").glob("*/SKILL.md")):
         fm, body = split_frontmatter(sk.read_text(encoding="utf-8"))
         d = out_skills / fm["name"]
         d.mkdir(parents=True, exist_ok=True)
-        (d / "SKILL.md").write_text(tr(skill_md(fm, body), in_place), encoding="utf-8")
+        (d / "SKILL.md").write_text(tr(skill_md(fm, body), prefix), encoding="utf-8")
+        for extra in sk.parent.rglob("*"):                       # references/, assets/ travel with the skill
+            if extra.is_file() and extra.name != "SKILL.md":
+                (d / extra.relative_to(sk.parent)).parent.mkdir(parents=True, exist_ok=True)
+                (d / extra.relative_to(sk.parent)).write_bytes(extra.read_bytes())
         names.add(fm["name"])
         made["skills"].append(fm["name"])
-    for cm in sorted((AOS_DIR / "commands").glob("*.md")):       # Codex deprecated custom prompts in favour of skills (per adapter notes)
+    for cm in sorted((src / "commands").glob("*.md")):       # Codex deprecated custom prompts in favour of skills (per adapter notes)
         if cm.stem in names:
             continue
         fm, body = split_frontmatter(cm.read_text(encoding="utf-8"))
         d = out_skills / cm.stem
         d.mkdir(parents=True, exist_ok=True)
-        (d / "SKILL.md").write_text(tr(skill_md({"name": cm.stem, "description": fm["description"] + ". Use when the user asks for it by name."}, body), in_place), encoding="utf-8")
+        (d / "SKILL.md").write_text(tr(skill_md({"name": cm.stem, "description": fm["description"] + ". Use when the user asks for it by name."}, body), prefix), encoding="utf-8")
         made["skills"].append(cm.stem)
     out_agents.mkdir(parents=True, exist_ok=True)
-    for ag in sorted((AOS_DIR / "agents").glob("*.md")):
+    for ag in sorted((src / "agents").glob("*.md")):
         fm, body = split_frontmatter(ag.read_text(encoding="utf-8"))
         tools = {t.strip() for t in fm.get("tools", "").split(",")}
         sandbox = "read-only" if tools <= {"Read", "Grep", "Glob"} else "workspace-write"   # Bash can write logs/state
         lines = [f"name = {toml_str(fm['name'])}", f"description = {toml_str(fm['description'])}"]
         if fm.get("model") in models:
             lines.append(f"model = {toml_str(models[fm['model']])}")
-        lines += [f"sandbox_mode = {toml_str(sandbox)}", f"developer_instructions = {toml_str(tr(body.strip(), in_place))}"]
+        lines += [f"sandbox_mode = {toml_str(sandbox)}", f"developer_instructions = {toml_str(tr(body.strip(), prefix))}"]
         (out_agents / f"{fm['name']}.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
         made["agents"].append(fm["name"])
     errs = [e for s in out_skills.glob("*/SKILL.md") if s.parent.name in made["skills"] for e in validate_skill(s)]

@@ -19,3 +19,11 @@ No third-party source code is vendored or copied into this repository (checked: 
 
 ## Not verified
 Live skill/agent loading in Claude Code and Codex; Codex 8 KB/32 KiB limits and TOML schema; end-to-end model cost; transcript parser on a real transcript; ffmpeg-skill/OpenFilm/ComfyUI integration beyond what is listed.
+
+## Added in AOS 3.0 (TCCM + merge)
+| Item | Class | Source | Evidence |
+|---|---|---|---|
+| Local engines (Ollama, llama.cpp, vLLM) | **Used through their OpenAI-compatible API, not bundled** | ollama `b8db8d5` MIT, llama.cpp `d3c3e24` MIT, vLLM `2440ffc` Apache-2.0 | endpoints verified in source; adapter tested against a mock server only; no real engine run |
+| bifrost, Helicone, RouteLLM, Continue | **Audited, not used** | see TCCM_AUDIT.md | rationale + licenses + dates recorded |
+| Specialist skills, humanizer, model-advisor, policy_guard, select_skills, procedures.md | **Reviewed and merged from the supplied builds** | uploaded aos-unified / aos-skill packages (humanizer: blader/humanizer v4.0.0, MIT) | merge report; tests; packaging verification |
+| core/ (selector, usage monitor, cache, dashboard, benchmark, capacity planner, provider switch), packaging/ | **Independently developed** | this repo | 107 tests incl. mock-endpoint benchmark and 8-zip verification |

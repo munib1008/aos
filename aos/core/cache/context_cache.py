@@ -60,7 +60,7 @@ def _stats(root: Path, **inc) -> dict:
 
 def put(root: Path, key: str, prompt: str, response: str, *, fingerprint: str, params: dict, provider: str, model: str,
         ttl_s: int | None = None, confidential: bool = False, allow_nondeterministic: bool = False) -> dict:
-    cfg = load_config("compute", root)["cache"]
+    cfg = load_config("routing", root)["cache"]
     why = None
     if confidential:
         why = "flagged confidential"
@@ -91,7 +91,7 @@ def get(root: Path, key: str, fingerprint: str) -> dict | None:
         p.unlink(missing_ok=True)
         _stats(root, misses=1)
         return None
-    _stats(root, hits=1)
+    _stats(root, hits=1, saved_tokens_est=(e.get("prompt_chars", 0) + len(e["response"])) // 4)   # ESTIMATE (chars/4)
     return e
 
 
@@ -115,6 +115,7 @@ def check_duplicate(root: Path, tool: str, args: dict, fingerprint: str) -> dict
     sig = _h(tool, json.dumps(args, sort_keys=True))
     seen = set(f.read_text().split()) if f.exists() else set()
     if sig in seen:
+        _stats(root, duplicate_calls=1)
         return {"duplicate": True, "advice": "same tool+args on unchanged state: reuse the previous result"}
     with f.open("a") as fh:
         fh.write(sig + "\n")

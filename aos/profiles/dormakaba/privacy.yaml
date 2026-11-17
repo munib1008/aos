@@ -1,0 +1,6 @@
+version: 1
+classification_default: internal
+never_store: [api keys, passwords, access tokens, key system numbers, key system codes, card codes, TAN codes, security questions and answers, personal data, confidential customer details, production data dumps]
+redaction: {memory: true, handoff: true, artifacts: true, kickoff_prompts: true}
+retention: {session_days: 30, lessons_review_days: 180}
+deletion: "memory.py deprecate/rollback; delete .aos/ to purge local state"

@@ -1,42 +1,37 @@
 # AOS - Adaptive Optimization System
 
-Lightweight, provider-independent agent + skill package for Claude Code that cuts avoidable context and rework in AI-assisted development **without trading away correctness, security or tests**. Python standard library only (3.9+); no network calls, no model calls inside the scripts.
+Provider-independent skill + agent framework for Claude Code and Codex: complexity routing, minimal-context building, verified per-project memory, safe session fork/handoff, honest test summaries, video assembly with local FFmpeg, specialist skills (API, database, UI/UX, automation, research, AI/ML, security review, humanizer) and a **Token Capacity & Compute Manager (TCCM)** for budget-aware model selection. Python standard library only (3.9+).
 
-## What is real vs. not
-| Component | State |
+## Download and use (`dist/`)
+Pick one form. Two profiles: **default** (full, generic) and **dormakaba** (policy-restricted; no TCCM, AI Platform catalog).
+
+| File | Use as | Install |
+|---|---|---|
+| `aos-<profile>-skill.zip` | one Agent Skill with scripts | unzip so the folder is `~/.claude/skills/aos/` (Claude Code) or `~/.codex/skills/aos/` (Codex) |
+| `aos-<profile>-skill-noscript.zip` | claude.ai skill upload (no code allowed; written procedures) | Settings > Capabilities > Skills > upload |
+| `aos-<profile>-claude-code.zip` | skills + 9 agents + slash commands | unzip at the project root; delegation: `claude --agent orchestrator` |
+| `aos-<profile>-codex.zip` | skills + agents (TOML) | unzip at the project root |
+
+Check files: `cd dist && sha256sum -c SHA256SUMS`. From a clone: `python3 aos/install.py --target <project> --harness both [--profile dormakaba]` or `--global`. Rebuild: `python3 aos/packaging/package.py build --out dist && python3 aos/packaging/package.py verify dist`.
+
+## What is in it
+| Area | Components |
 |---|---|
-| Router (complexity 8x0-3, levels 1-4, model/effort, escalation) | Implemented, unit-tested. Scores are **keyword heuristics**; thresholds are **initial, uncalibrated**. |
-| Per-project memory (JSONL, sources, verification, supersede/rollback, isolation, secret refusal) | Implemented, tested |
-| Repo index / query / refs (incremental by git blob hash) | Implemented, tested |
-| Context builder (P0-P6, token budget **estimate** = chars/4) | Implemented, tested |
-| Test/diff summarizers (full logs to `.aos/artifacts`, honest status) | Implemented, tested |
-| Session manifests, fork (worktree), resume drift checks, health policy | Implemented, tested |
-| Handoff export (redacted, aborts on surviving secret) | Implemented, tested. **No sync with ChatGPT/Codex exists**; you hand over the folder. |
-| Usage measurement + baseline-vs-AOS compare | Parser tested on a **synthetic** transcript; not yet validated on a live Claude Code transcript. Prices are null (not invented). |
-| Context loading vs naive grep+read | **Measured offline** on 5 repos: 0.01-0.24x the tokens, higher file recall (`docs/BENCHMARKS.md`). Proxy only. |
-| End-to-end cost per successful task | **Unmeasured.** Targets only; needs real A/B runs (`docs/BENCHMARKS.md`). |
-| Video (`aos-video`, `video_pipeline.py`) | Implemented; real FFmpeg render + objective verify tested; frames inspected. Advanced editing delegates to external ffmpeg-skill. |
-| Codex export (`.codex/skills`, `.codex/agents/*.toml`) | Generated + validated against spec rules/TOML parse; **live Codex load unverified** (`docs/COMPATIBILITY.md`). |
-| Agents/skills/commands loading in a live Claude Code session | Files are well-formed (tested); **live invocation not yet verified** in this environment. |
-| Project history and scoping | **Deferred to Phase 2** (`aos/docs/ROADMAP.md`); AOS ships generic with empty memory and registry. |
+| Core | router (8 dimensions, levels 1-4, tier floors), `build_context` (priority tiers, budget), `index_repository`, `memory` (provenance, isolation, secret refusal), `summarize_tests/changes`, `session_manager`, `create_handoff` (redacted) |
+| Skills (20 default / 18 dormakaba) | 8 core, `aos-video`, 7 specialist, `humanizer`, `aos-token-capacity`, `aos-local-inference`, `aos-model-routing` (default only), `model-advisor` (dormakaba only) |
+| TCCM (default) | `tccm.py`: hardware inventory + local-model sizing, OpenAI-compatible local adapter, model selector (modes `local_first/balanced/quality_first`, budget gate, privacy/terms/tier filters, evidence-based escalation), usage ledger + dashboard (paid / subscription / free-tier / local / credits never mixed), safe exact-match cache + duplicate-call detection, model-quality benchmark, measured-only capacity plan, read-only credits registry, usage-limit handoff |
+| Packaging | 8 reproducible zips, profile overlays, `package.py verify` |
 
-## Install
-```bash
-python3 aos/install.py --target /path/to/your/project      # copies .claude/{agents,skills,commands} + runtime to .claude/aos
-python3 aos/install.py --target /path/to/your/project --uninstall
-python3 aos/install.py --target /path/to/project --harness both   # claude | codex | both
-python3 -m unittest discover -s aos/tests                   # self-test (48 tests)
-```
-Idempotent; appends a marked block to the project's `AGENTS.md`/`CLAUDE.md` (never overwrites), adds `.aos/` to `.gitignore`.
+## Verified vs not (honest status)
+| Claim | Status |
+|---|---|
+| 107 unit tests (router, memory, index, context, sessions, handoff, video, Codex export, TCCM with a mock OpenAI endpoint, profiles, packaging, dormakaba suite on the built profile) | pass |
+| All 8 zips unzip, validate against the Agent Skills rules, run a script smoke test, contain no secrets, no profile leakage | pass (`package.py verify`) |
+| Context loading vs grep+read: 0.01-0.24x tokens, higher recall on 5 repos (`aos/docs/BENCHMARKS.md`) | measured, **proxy only** |
+| Real local / low-cost / strong model comparison, cost per successful task | **not run**: no GPU, engine or model access in the build sandbox; harness is ready |
+| Live loading in Claude Code, Codex, claude.ai | **not verified** here (files are spec-valid) |
+| End-to-end cost savings | **unmeasured** |
+| Priors for model success rates | **uncalibrated assumptions**, flagged in output; replaced by measured stats at 5+ samples |
 
-## Use
-`/aos-optimize` `/aos-scan` `/aos-route` `/aos-learn` `/aos-fork` `/aos-resume` `/aos-handoff` `/aos-audit` (commands -> skills). For delegation run `claude --agent orchestrator` (subagents cannot spawn subagents). Scripts also work standalone: `python3 aos/scripts/<name>.py --help`.
-
-## Onboarding a project (per repo, authorised access only)
-1. `index_repository.py index` then `discover_history.py scan` (local git history -> *unverified* candidates).
-2. Read the project's docs/CLAUDE.md; record only source-backed facts: `memory.py add ... --source file:line --verification verified`.
-3. CI failures/PRs/issues: fetch with your GitHub tooling, then record confirmed causes. Chat history: export to md/json/txt, `discover_history.py import-chat FILE` (kept as hypotheses until you verify).
-4. `validate_memory.py --check-sources`, `memory.py render`.
-Edit `aos/config/models.yaml` `available` to what your plan really offers; fill `price_per_mtok` to get cost figures.
-
-Reuse audit of 15 repos and what was built vs reused: `aos/docs/BUILD_VS_REUSE.md`, `REUSE_LOG.md`, `COMPATIBILITY.md`. Design rationale, limits and risks: `aos/docs/DESIGN.md`. Measurement protocol: `aos/docs/BENCHMARKS.md`.
+## Safety stance
+No quota evasion, fake referrals, credit farming, unofficial proxies or auth bypass. AOS recommends and accounts; it never proxies proprietary-provider traffic, never stores API keys, and authorizes no paid-API spend by default. Details: `aos/docs/TCCM_AUDIT.md`, `aos/docs/BUILD_VS_REUSE.md`, `aos/docs/REUSE_LOG.md`, `aos/docs/COMPATIBILITY.md`, `docs/PROFILES.md`, `docs/MERGE_REPORT.md`.

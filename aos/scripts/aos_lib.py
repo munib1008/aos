@@ -16,6 +16,25 @@ _SCALAR_INT = re.compile(r"^-?\d+$")
 _SCALAR_FLOAT = re.compile(r"^-?\d+\.\d+$")
 
 
+def _split_top(text: str) -> list[str]:
+    """Split on commas that are not inside nested {} / [] / quotes."""
+    parts, depth, cur, q = [], 0, [], None
+    for ch in text:
+        if q:
+            q = None if ch == q else q
+        elif ch in "\"'":
+            q = ch
+        elif ch in "{[":
+            depth += 1
+        elif ch in "}]":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            parts.append("".join(cur)); cur = []; continue
+        cur.append(ch)
+    parts.append("".join(cur))
+    return parts
+
+
 def _scalar(tok: str):
     tok = tok.strip()
     if tok == "" or tok in ("null", "~"):
@@ -32,11 +51,11 @@ def _scalar(tok: str):
         return float(tok)
     if tok.startswith("[") and tok.endswith("]"):
         inner = tok[1:-1].strip()
-        return [] if not inner else [_scalar(p) for p in inner.split(",")]
+        return [] if not inner else [_scalar(p) for p in _split_top(inner)]
     if tok.startswith("{") and tok.endswith("}"):
         inner = tok[1:-1].strip()
         out = {}
-        for part in ([] if not inner else inner.split(",")):
+        for part in ([] if not inner else _split_top(inner)):
             k, _, v = part.partition(":")
             out[_key(k)] = _scalar(v)
         return out
@@ -103,9 +122,31 @@ def parse_yaml(text: str) -> dict:
     return result
 
 
+def active_profile(root: Path | None = None) -> str | None:
+    """Policy profile: env AOS_PROFILE > <project>/.aos/profile > <aos>/config/PROFILE (baked into profile distributions) > none."""
+    env = os.environ.get("AOS_PROFILE", "").strip()
+    if env:
+        return None if env == "default" else env
+    for p in ([root / ".aos" / "profile"] if root else []) + [AOS_DIR / "config" / "PROFILE"]:
+        if p.exists() and p.read_text(encoding="utf-8").strip():
+            v = p.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+            return None if v == "default" else v
+    return None
+
+
+def config_path(name: str, root: Path | None = None) -> Path:
+    """config/<name>.yaml, REPLACED by profiles/<profile>/<name>.yaml when a profile is active."""
+    prof = active_profile(root)
+    if prof:
+        p = AOS_DIR / "profiles" / prof / f"{name}.yaml"
+        if p.exists():
+            return p
+    return AOS_DIR / "config" / f"{name}.yaml"
+
+
 def load_config(name: str, root: Path | None = None) -> dict:
-    """Load config/<name>.yaml; a project-level .aos/config/<name>.yaml overrides keys (shallow per top key)."""
-    base = parse_yaml((AOS_DIR / "config" / f"{name}.yaml").read_text(encoding="utf-8"))
+    """Load a config (profile-aware); a project-level .aos/config/<name>.yaml overrides keys (shallow per top key)."""
+    base = parse_yaml(config_path(name, root).read_text(encoding="utf-8"))
     if root:
         ov = root / ".aos" / "config" / f"{name}.yaml"
         if ov.exists():
@@ -169,6 +210,8 @@ def git_state(root: Path) -> dict:
 
 
 # --------------------------------------------------------------------- misc
+# a value that is only a dotted lowercase identifier chain / call (e.g. `a.input_tokens`, `e.get(`) is code, not a credential
+_CODE_REF = re.compile(r"[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)+\(?[),]*|[a-z_][a-z0-9_]*\(")
 _SECRET_PATTERNS = [
     (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S), "[REDACTED_PRIVATE_KEY]"),
     (re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_\-]{16,}"), "[REDACTED_KEY]"),
@@ -178,8 +221,10 @@ _SECRET_PATTERNS = [
     (re.compile(r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}"), "[REDACTED_JWT]"),
     (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{16,}"), "Bearer [REDACTED]"),
     (re.compile(r"://([^/\s:@]+):([^/\s@]+)@"), r"://\1:[REDACTED]@"),
-    (re.compile(r"(?i)\b([A-Za-z_]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key)[A-Za-z_]*)(\s*[:=]\s*)(['\"]?)[^\s'\",;]{6,}\3"),
-     r"\1\2[REDACTED]"),
+    (re.compile(r"(?i)\b((?![A-Za-z_]*(?:tokens|secrets))[A-Za-z_]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key)[A-Za-z_]*)(\s*[:=]\s*)(['\"]?)([^\s'\",;]{6,})\3"),
+     lambda m: m.group(0) if (_CODE_REF.fullmatch(m.group(4)) or m.group(1).lower().endswith("_env")) else f"{m.group(1)}{m.group(2)}[REDACTED]"),
+    # access-control data is never stored or exported: key system numbers/codes, card codes, TAN codes, security answers
+    (re.compile(r"(?i)\b(key[ _-]?system[ _-]?(?:number|no\.?|code|id)|card[ _-]?code|tan(?:[ _-]?code)?|security[ _-]?(?:question|answer))(\s*[:=#]\s*|\s+is\s+)(\S{3,})"), r"\1\2[REDACTED_ACCESS_DATA]"),
 ]
 
 

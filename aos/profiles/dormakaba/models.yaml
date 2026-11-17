@@ -1,0 +1,42 @@
+# Model catalogue - dormakaba profile. Source: skills/model-advisor/references/model-catalog.md (catalog date 2026-11-16).
+# Only AI Platform models. The user selects the model in the picker; AOS only recommends.
+# cost_multiplier and intelligence are the platform's own ratings (not prices, not dormakaba benchmarks).
+version: 2
+provider_default: ai-platform
+can_switch_model_programmatically: false
+catalog_date: 2026-11-16
+available: [gpt-6-luna, deepseek-4-1-flash, gpt-6-1-terra, gpt-6-1-sol, glm-5-3, claude-sonnet-5-5, kimi-k3, claude-opus-5-5]
+models:
+  gpt-6-luna:         {provider: ai-platform, family: GPT, tier: small, intelligence: 76, cost_multiplier: 0.09, price_per_mtok: null}
+  deepseek-4-1-flash: {provider: ai-platform, family: DeepSeek, tier: small, intelligence: 79, cost_multiplier: 0.16, price_per_mtok: null}
+  gpt-6-1-terra:      {provider: ai-platform, family: GPT, tier: balanced, intelligence: 84, cost_multiplier: 0.6, price_per_mtok: null}
+  gpt-6-1-sol:        {provider: ai-platform, family: GPT, tier: strong, intelligence: 89, cost_multiplier: 1.2, price_per_mtok: null}
+  glm-5-3:            {provider: ai-platform, family: GLM, tier: strong, intelligence: 85, cost_multiplier: 1.2, price_per_mtok: null}
+  claude-sonnet-5-5:  {provider: ai-platform, family: Claude, tier: strong, intelligence: 85, cost_multiplier: 1.4, price_per_mtok: null}
+  kimi-k3:            {provider: ai-platform, family: Kimi, tier: strongest, intelligence: 88, cost_multiplier: 2.09, price_per_mtok: null}
+  claude-opus-5-5:    {provider: ai-platform, family: Claude, tier: strongest, intelligence: 90, cost_multiplier: 2.7, price_per_mtok: null}
+# AOS tiers = model-advisor tiers: small=Economy, balanced=Value, strong=Strong, strongest=Premium.
+tier_preference:
+  small: [gpt-6-luna, deepseek-4-1-flash]
+  balanced: [gpt-6-1-terra]
+  strong: [gpt-6-1-sol, claude-sonnet-5-5, glm-5-3]
+  strongest: [claude-opus-5-5, kimi-k3]
+family_switch:
+  Claude: {models: [claude-opus-5-5, claude-sonnet-5-5], status: verified, verified_on: 2026-11-16}
+  GPT: {models: [gpt-6-luna, gpt-6-1-terra, gpt-6-1-sol], status: unverified}
+  DeepSeek: {models: [deepseek-4-1-flash], status: unverified}
+  GLM: {models: [glm-5-3], status: unverified}
+  Kimi: {models: [kimi-k3], status: unverified}
+levels:
+  1: {tier: small, effort: low}
+  2: {tier: balanced, effort: medium}
+  3: {tier: strong, effort: high}
+  4: {tier: strongest, effort: max}
+external_providers:
+  ai_platform_new_chat:
+    handoff_format: [HANDOFF.md, TASK_CONTEXT.json]
+    requires: "New AI Platform chat on an approved model; re-attach files; redaction mandatory"
+  claude_code_or_codex:
+    handoff_format: [HANDOFF.md, TASK_CONTEXT.json]
+    requires: "Only a dormakaba-licensed enterprise account approved for the repository's data classification"
+codex_model_map: {}

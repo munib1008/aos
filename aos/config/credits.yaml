@@ -4,6 +4,7 @@
 # Add entries yourself or via web research; every entry MUST cite an official source_url and a last_checked date.
 # status: published | applied | confirmed   (confirmed requires provider_confirmation = reference/email id)
 version: 1
+stale_after_days: 90          # flag entries whose last_checked is older than this
 programs: {}
 # example:
 #   example-provider-trial:

@@ -1,0 +1,6 @@
+# Direct paid-API use is disabled in the dormakaba profile (0 = nothing authorized).
+version: 2
+currency: USD
+paid_api: {per_task_usd: 0, daily_usd: 0, monthly_usd: 0, warn_at_fraction: 0.8}
+ai_platform:
+  track: cost_multiplier          # relative units from models.yaml; never converted to USD

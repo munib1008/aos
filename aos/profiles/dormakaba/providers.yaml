@@ -1,0 +1,28 @@
+# Provider registry - dormakaba profile. AOS recommends and accounts; it never proxies traffic and never stores keys.
+# Removed: free-tier APIs, credits/trials, personal API keys, local model runtimes (see docs/DORMAKABA_POLICY.md).
+version: 2
+providers:
+  ai-platform:
+    kind: subscription
+    enabled: true
+    note: "dormakaba AI Platform. User picks the model; allowance is not exposed to AOS."
+    allowance: {unit: cost_multiplier, remaining: null}
+    models:    # mirrors models.yaml (platform catalog); cost_multiplier is the platform's relative rating, not a price
+      gpt-6-luna: {tier: small, cost_multiplier: 0.09, price_per_mtok: null}
+      deepseek-4-1-flash: {tier: small, cost_multiplier: 0.16, price_per_mtok: null}
+      gpt-6-1-terra: {tier: balanced, cost_multiplier: 0.6, price_per_mtok: null}
+      gpt-6-1-sol: {tier: strong, cost_multiplier: 1.2, price_per_mtok: null}
+      glm-5-3: {tier: strong, cost_multiplier: 1.2, price_per_mtok: null}
+      claude-sonnet-5-5: {tier: strong, cost_multiplier: 1.4, price_per_mtok: null}
+      kimi-k3: {tier: strongest, cost_multiplier: 2.09, price_per_mtok: null}
+      claude-opus-5-5: {tier: strongest, cost_multiplier: 2.7, price_per_mtok: null}
+  claude-code-enterprise:
+    kind: subscription
+    enabled: false
+    requires_approval: true
+    note: "Enable only after IT approval of a dormakaba-licensed account for this repository; then set approved_by."
+  codex-enterprise:
+    kind: subscription
+    enabled: false
+    requires_approval: true
+    note: "Enable only after IT approval of a dormakaba-licensed account for this repository; then set approved_by."

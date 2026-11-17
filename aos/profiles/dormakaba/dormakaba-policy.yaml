@@ -1,0 +1,18 @@
+# dormakaba policy profile. Changing this file needs human approval from the dormakaba IT / information-security owner.
+version: 1
+profile: dormakaba
+disabled:
+  credits_registry: "Collecting free trials, promo credits or grants is not an approved procurement path."
+  free_tier_providers: "Free-tier APIs with unverified data/training terms may not receive company data."
+  personal_api_keys: "Direct API keys outside the AI Platform bypass enterprise contracts and logging."
+  local_model_runtime: "Self-hosted open-weight runtimes are unapproved software with mixed licenses."
+  automatic_model_switching: "The user selects models in the AI Platform picker; AOS only recommends."
+  external_media_generation_apis: "AI image/video/voice APIs outside the AI Platform are not approved; brand assets come from Frontify."
+  hardware_adaptive_portable_os: "AOS 4.0 (portable OS, local models, Qwen4-Max) is out of scope for dormakaba projects."
+restricted:
+  cross_provider_handoff: "Only to AI Platform models or IT-approved enterprise accounts; redaction mandatory."
+  chat_history_import: "Only the user's own export, on explicit request; imported text stays unverified."
+  cross_project_memory: "Only user_preference, reusable_pattern, lesson_general; never customer or project data."
+forbidden_files: [config/credits.yaml, config/compute.yaml, core/compute]
+forbidden_provider_kinds: [api_free, credits, local]
+house_style: {company_name: dormakaba, english: en-US}

@@ -154,11 +154,13 @@ def query(idx: dict, text: str, limit: int = 8) -> list[dict]:
         for name, kind, line in meta.get("symbols", []):
             st = set(tokenize(name))
             if qset & st:
-                score += 2.0 * len(qset & st)
-                hits.append({"symbol": name, "kind": kind, "line": line})
+                s_ = 2.0 * len(qset & st) + (4.0 if len(st) >= 2 and st <= qset else 0.0)   # bonus: every word of the symbol is in the query
+                score += s_
+                hits.append({"symbol": name, "kind": kind, "line": line, "rel": s_})
         if rel in idx["tests"]:
             score *= 0.8
         if score > 0 and not meta.get("skipped"):
+            hits.sort(key=lambda h: (-h["rel"], h["line"]))
             results.append({"path": rel, "score": round(score, 2), "lines": meta["lines"], "symbols": hits[:6],
                             "is_test": rel in idx["tests"]})
     results.sort(key=lambda r: (-r["score"], r["path"]))

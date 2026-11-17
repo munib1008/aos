@@ -1,0 +1,16 @@
+# READ-ONLY registry of OFFICIAL, published programs (free API allowances, trials, developer/education/startup credits,
+# promotions, compute grants). AOS only lists them and flags expiry/staleness. It never applies for, farms, or claims
+# anything, and never counts a credit as earned until the provider confirms it.
+# Add entries yourself or via web research; every entry MUST cite an official source_url and a last_checked date.
+# status: published | applied | confirmed   (confirmed requires provider_confirmation = reference/email id)
+version: 1
+programs: {}
+# example:
+#   example-provider-trial:
+#     provider: example
+#     source_url: https://example.com/official-program-page
+#     eligibility: "as stated on the page, copied verbatim"
+#     expires: 2027-01-31
+#     last_checked: 2026-11-17
+#     status: published
+#     provider_confirmation: null

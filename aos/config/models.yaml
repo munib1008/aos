@@ -45,3 +45,7 @@ external_providers:
   chatgpt_codex:
     handoff_format: [HANDOFF.md, TASK_CONTEXT.json]
     requires: "User-confirmed access to ChatGPT/Codex; a ChatGPT plan does not imply API credits"
+
+# Codex has its own model ids; AOS does not guess them. Fill to pin agent models in exported .codex/agents/*.toml,
+# e.g. {haiku: <your small model id>, sonnet: <balanced id>, opus: <strong id>}. Empty = agents inherit Codex's default.
+codex_model_map: {}

@@ -13,7 +13,10 @@ Lightweight, provider-independent agent + skill package for Claude Code that cut
 | Session manifests, fork (worktree), resume drift checks, health policy | Implemented, tested |
 | Handoff export (redacted, aborts on surviving secret) | Implemented, tested. **No sync with ChatGPT/Codex exists**; you hand over the folder. |
 | Usage measurement + baseline-vs-AOS compare | Parser tested on a **synthetic** transcript; not yet validated on a live Claude Code transcript. Prices are null (not invented). |
-| Token/cost savings, 20-40% targets | **Unmeasured.** Targets only; run `docs/BENCHMARKS.md`. |
+| Context loading vs naive grep+read | **Measured offline** on 5 repos: 0.01-0.24x the tokens, higher file recall (`docs/BENCHMARKS.md`). Proxy only. |
+| End-to-end cost per successful task | **Unmeasured.** Targets only; needs real A/B runs (`docs/BENCHMARKS.md`). |
+| Video (`aos-video`, `video_pipeline.py`) | Implemented; real FFmpeg render + objective verify tested; frames inspected. Advanced editing delegates to external ffmpeg-skill. |
+| Codex export (`.codex/skills`, `.codex/agents/*.toml`) | Generated + validated against spec rules/TOML parse; **live Codex load unverified** (`docs/COMPATIBILITY.md`). |
 | Agents/skills/commands loading in a live Claude Code session | Files are well-formed (tested); **live invocation not yet verified** in this environment. |
 | Project history and scoping | **Deferred to Phase 2** (`aos/docs/ROADMAP.md`); AOS ships generic with empty memory and registry. |
 
@@ -21,7 +24,8 @@ Lightweight, provider-independent agent + skill package for Claude Code that cut
 ```bash
 python3 aos/install.py --target /path/to/your/project      # copies .claude/{agents,skills,commands} + runtime to .claude/aos
 python3 aos/install.py --target /path/to/your/project --uninstall
-python3 -m unittest discover -s aos/tests                   # self-test (38 tests)
+python3 aos/install.py --target /path/to/project --harness both   # claude | codex | both
+python3 -m unittest discover -s aos/tests                   # self-test (48 tests)
 ```
 Idempotent; appends a marked block to the project's `AGENTS.md`/`CLAUDE.md` (never overwrites), adds `.aos/` to `.gitignore`.
 
@@ -35,4 +39,4 @@ Idempotent; appends a marked block to the project's `AGENTS.md`/`CLAUDE.md` (nev
 4. `validate_memory.py --check-sources`, `memory.py render`.
 Edit `aos/config/models.yaml` `available` to what your plan really offers; fill `price_per_mtok` to get cost figures.
 
-Design rationale, limits and risks: `aos/docs/DESIGN.md`. Measurement protocol: `aos/docs/BENCHMARKS.md`.
+Reuse audit of 15 repos and what was built vs reused: `aos/docs/BUILD_VS_REUSE.md`, `REUSE_LOG.md`, `COMPATIBILITY.md`. Design rationale, limits and risks: `aos/docs/DESIGN.md`. Measurement protocol: `aos/docs/BENCHMARKS.md`.

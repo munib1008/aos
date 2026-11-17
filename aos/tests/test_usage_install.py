@@ -52,7 +52,7 @@ class PackageIntegrity(unittest.TestCase):
 
     def test_skills_agents_commands_wellformed(self):
         skills = sorted((AOS / "skills").glob("*/SKILL.md"))
-        self.assertEqual(len(skills), 8)
+        self.assertEqual(len(skills), 9)
         for s in skills:
             f = self.fm(s)
             self.assertEqual(f["name"], s.parent.name)
@@ -70,7 +70,7 @@ class PackageIntegrity(unittest.TestCase):
             body = c.read_text()
             self.assertTrue(any(n in body for n in skill_names), c)
         self.assertEqual({c.stem for c in (AOS / "commands").glob("*.md")},
-                         {"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit"})
+                         {"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit", "aos-video"})
 
     def test_every_script_referenced_exists_and_has_help(self):
         import re, subprocess, sys

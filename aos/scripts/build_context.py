@@ -28,18 +28,20 @@ def snippet(root: Path, rel: str, hits: list[dict], max_lines: int) -> str:
     if len(lines) <= 60:
         chunk = [(1, lines)]
     elif hits:
-        chunk, used = [], 0
-        for h in sorted(hits, key=lambda x: x["line"]):
-            if used >= max_lines:
-                break
+        chunk, used, picked = [], 0, []
+        for h in hits:                       # hits arrive most-relevant first: spend the line budget in that order
             a = max(1, h["line"] - 2)
             b = min(len(lines), a + min(24, max_lines - used))
-            if chunk and a <= chunk[-1][0] + len(chunk[-1][1]):   # merge overlap
+            if used >= max_lines or b < a:
+                break
+            picked.append((a, b))
+            used += b - a + 1
+        for a, b in sorted(picked):          # then emit in file order, merging overlaps
+            if chunk and a <= chunk[-1][0] + len(chunk[-1][1]):
                 prev_a, prev = chunk[-1]
-                chunk[-1] = (prev_a, lines[prev_a - 1:b])
+                chunk[-1] = (prev_a, lines[prev_a - 1:max(b, prev_a + len(prev) - 1)])
             else:
                 chunk.append((a, lines[a - 1:b]))
-            used += b - a + 1
     else:
         chunk = [(1, lines[:40])]
     out = []

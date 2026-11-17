@@ -1,0 +1,17 @@
+# Spending ceilings. DEFAULT = NOTHING AUTHORIZED: any paid-API cost returns needs_authorization until you set limits
+# (or run `tccm.py budget authorize`). Subscription/free/local/credits usage is tracked separately and never converted to USD.
+version: 1
+currency: USD
+paid_api:
+  per_task_usd: 0
+  daily_usd: 0
+  monthly_usd: 0
+  warn_at_fraction: 0.8
+modes:                              # optional per-mode ceilings; the stricter of global and mode value applies
+  local_first: {}
+  balanced: {}
+  quality_first: {}
+free_tier:
+  daily_tokens_soft_cap: null       # per provider limits live in providers.yaml
+local:
+  max_gpu_mem_fraction: 0.9         # warn if sampled usage exceeds this

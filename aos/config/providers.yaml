@@ -1,0 +1,61 @@
+# Provider registry. AOS recommends and accounts; the coding agent (Claude Code / Codex) executes cloud calls with its
+# own supported authentication. AOS never proxies proprietary-provider traffic and never stores API keys:
+# `api_key_env` only names an environment variable you control.
+# kind: local | api_free | api_paid | subscription | credits   (quantities of different kinds are NEVER summed)
+version: 1
+providers:
+  claude-subscription:
+    kind: subscription
+    enabled: true
+    note: "Claude Code plan allowance. Not equivalent to API credits; remaining allowance is usually not exposed."
+    allowance: {unit: unknown, remaining: null}
+    models:
+      claude-haiku-5-5:  {tier: small, price_per_mtok: null}
+      claude-sonnet-5-5: {tier: balanced, price_per_mtok: null}
+      claude-opus-5-5:   {tier: strong, price_per_mtok: null}
+      claude-fable-5-2:  {tier: strongest, price_per_mtok: null}
+  codex-subscription:
+    kind: subscription
+    enabled: false
+    note: "ChatGPT/Codex plan allowance; separate from OpenAI API credits. Add the model ids your plan offers."
+    allowance: {unit: unknown, remaining: null}
+    models: {}
+  anthropic-api:
+    kind: api_paid
+    enabled: false
+    api_key_env: ANTHROPIC_API_KEY
+    data_policy: unverified
+    models: {}     # fill: model_id: {tier: balanced, price_per_mtok: {input: <usd>, output: <usd>, cache_read: <usd>}}
+  openai-api:
+    kind: api_paid
+    enabled: false
+    api_key_env: OPENAI_API_KEY
+    data_policy: unverified
+    models: {}
+  free-tier-example:
+    kind: api_free
+    enabled: false
+    api_key_env: EXAMPLE_API_KEY
+    terms_verified_on: null        # YYYY-MM-DD you checked the provider's current terms; required before AOS will route here
+    commercial_use_allowed: null   # true | false | null (unknown => excluded for commercial work)
+    data_policy: unverified        # no_training | may_train | unverified
+    limits: {requests_per_min: null, tokens_per_day: null}
+    models: {}
+  local-ollama:
+    kind: local
+    enabled: auto                  # auto = enabled only if detected running
+    base_url: http://localhost:11434/v1
+    engine: ollama
+    models: {}                     # discovered at runtime
+  local-llamacpp:
+    kind: local
+    enabled: auto
+    base_url: http://localhost:8080/v1
+    engine: llama.cpp
+    models: {}
+  local-vllm:
+    kind: local
+    enabled: auto
+    base_url: http://localhost:8000/v1
+    engine: vllm
+    models: {}

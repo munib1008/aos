@@ -8,7 +8,7 @@
         [--seconds S] [--retries N] [--passed true|false] [--regressions N] [--human-corrections N] [--cost USD]
   measure_usage.py compare [--min-runs 3]
 
-Cost is computed only when models.yaml has price_per_mtok {input,output,cache_read} for the model; else "n/a".
+Cost is computed only when models.yaml has price_per_mtok {input,output,cache_read,cache_write} for the model; else "n/a".
 Savings are reported only when both variants exist for a task, and are rejected if quality dropped.
 """
 from __future__ import annotations
@@ -57,7 +57,8 @@ def cost(root: Path, model: str | None, t: dict) -> float | None:
     if not isinstance(p, dict) or "input" not in p or "output" not in p:
         return None
     return round((t.get("input_tokens", 0) * p["input"] + t.get("output_tokens", 0) * p["output"]
-                  + t.get("cache_read_tokens", 0) * p.get("cache_read", p["input"])) / 1e6, 4)
+                  + t.get("cache_read_tokens", 0) * p.get("cache_read", p["input"])
+                  + t.get("cache_creation_tokens", 0) * p.get("cache_write", p["input"])) / 1e6, 4)
 
 
 def find_latest_transcript(root: Path) -> Path | None:

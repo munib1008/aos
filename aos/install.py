@@ -47,6 +47,7 @@ def block(path: Path, body: str, dry: bool, uninstall: bool) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--target", required=True)
+    ap.add_argument("--harness", choices=["claude", "codex", "both"], default="claude")
     ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--uninstall", action="store_true")
     a = ap.parse_args(argv)
     target = Path(a.target).resolve()
@@ -66,14 +67,23 @@ def main(argv=None) -> int:
             block(target / n, "", a.dry_run, True)
         print("AOS uninstalled (state in .aos/ kept)")
         return 0
-    for f in names["agents"] + names["commands"]:
+    claude = a.harness in ("claude", "both")
+    for f in (names["agents"] + names["commands"]) if claude else []:
         put(cdir / f.parent.name / f.name, rewrite(f.read_text(encoding="utf-8"), in_place), a.dry_run)
-    for f in names["skills"]:
+    for f in names["skills"] if claude else []:
         put(cdir / "skills" / f.parent.name / "SKILL.md", rewrite(f.read_text(encoding="utf-8"), in_place), a.dry_run)
-    if not in_place and not a.dry_run:
+    if claude and not in_place and not a.dry_run:
         rt = target / ".claude" / "aos"
         for sub in ("scripts", "config", "templates", "docs"):
             shutil.copytree(HERE / sub, rt / sub, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    if a.harness in ("codex", "both") and not a.dry_run:
+        sys.path.insert(0, str(HERE / "scripts"))
+        import export_codex
+        r = export_codex.export(target, in_place)
+        if not in_place:
+            shutil.copytree(HERE / "scripts", target / ".codex" / "aos" / "scripts", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+            shutil.copytree(HERE / "config", target / ".codex" / "aos" / "config", dirs_exist_ok=True)
+        print(f"codex: {len(r['skills'])} skills, {len(r['agents'])} agents -> {target / '.codex'}")
     agents_body = rewrite((HERE / "AGENTS.md").read_text(encoding="utf-8"), in_place)
     claude_body = "@AGENTS.md\n\nAOS slash commands: /aos-optimize /aos-scan /aos-route /aos-learn /aos-fork /aos-resume /aos-handoff /aos-audit"
     block(target / "AGENTS.md", agents_body, a.dry_run, False)

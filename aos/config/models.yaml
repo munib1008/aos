@@ -1,0 +1,47 @@
+# Model catalogue. EDIT `available` to match what your client/plan really offers.
+# AOS never assumes programmatic model switching: it recommends; you or the client apply it.
+# Prices are intentionally null (not invented). Fill price_per_mtok from your provider's price
+# page to enable cost figures in measure_usage.py; otherwise only token counts are reported.
+version: 1
+provider_default: claude
+can_switch_model_programmatically: false
+
+available: [claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-2]
+
+models:
+  claude-haiku-5-5:
+    provider: claude
+    tier: small
+    price_per_mtok: null
+  claude-sonnet-5-5:
+    provider: claude
+    tier: balanced
+    price_per_mtok: null
+  claude-opus-5-5:
+    provider: claude
+    tier: strong
+    price_per_mtok: null
+  claude-fable-5-2:
+    provider: claude
+    tier: strongest
+    price_per_mtok: null
+
+# Preferred model per tier, in order; first one that is in `available` wins.
+tier_preference:
+  small: [claude-haiku-5-5, claude-sonnet-5-5]
+  balanced: [claude-sonnet-5-5, claude-opus-5-5]
+  strong: [claude-opus-5-5, claude-sonnet-5-5]
+  strongest: [claude-fable-5-2, claude-opus-5-5]
+
+# Task level -> tier and reasoning effort (low|medium|high|max). Effort is capped to what the model supports.
+levels:
+  1: {tier: small, effort: low}
+  2: {tier: balanced, effort: medium}
+  3: {tier: strong, effort: high}
+  4: {tier: strongest, effort: max}
+
+# Non-Claude providers, used only for handoff recommendations (no API credentials are assumed).
+external_providers:
+  chatgpt_codex:
+    handoff_format: [HANDOFF.md, TASK_CONTEXT.json]
+    requires: "User-confirmed access to ChatGPT/Codex; a ChatGPT plan does not imply API credits"

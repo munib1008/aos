@@ -1,0 +1,5 @@
+# Copy to <project>/.aos/config/optimization.yaml to override thresholds for one project (shallow merge per top key).
+complexity:
+  l1_max: 2
+  l2_max: 7
+  l3_max: 13

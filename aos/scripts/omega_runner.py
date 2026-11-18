@@ -82,7 +82,7 @@ def build_cmd(tool: str, prompt: str, resume: bool, mode: str, custom: str | Non
         return [prompt if t == "{prompt}" else t.replace("{prompt}", prompt) for t in shlex.split(custom)]
     if tool == "claude":
         return ["claude", "-p", prompt, "--agent", "aos", "--permission-mode", mode] + (["--continue"] if resume else []) + extra
-    if tool == "codex":                                   # preset not verified in the build sandbox (codex not installed)
+    if tool == "codex":                                   # syntax checked against `codex exec --help` / `exec resume --help` (v0.170.0); never run here (no login)
         return (["codex", "exec", "resume", "--last", prompt] if resume else ["codex", "exec", prompt]) + extra
     raise SystemExit("--tool must be claude or codex, or pass --cmd with {prompt}")
 

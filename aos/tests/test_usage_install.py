@@ -93,6 +93,10 @@ class PackageIntegrity(unittest.TestCase):
         self.assertIn(".claude/aos/scripts/memory.py", skill)
         self.assertNotIn(" aos/scripts/", skill)
         agent = (target / ".claude/agents/aos.md").read_text()
+        import aos_lib
+        self.assertNotIn("<!-- profile:", agent)
+        self.assertEqual("Two-agent projects" in agent, aos_lib.active_profile() is None)       # default profile keeps the dual-agent section; policy profiles drop it
+        self.assertNotIn("<!-- profile:", (target / ".codex/agents/aos.toml").read_text() if (target / ".codex/agents/aos.toml").exists() else "")
         self.assertIn(".claude/aos/scripts/omega.py", agent); self.assertNotIn(" aos/scripts/", agent)
         for mod in (target / ".claude/skills/aos/modules").rglob("*.md"):
             self.assertNotIn(" aos/scripts/", mod.read_text().replace("`aos/scripts/", " aos/scripts/").replace("`.claude", "") if False else mod.read_text().replace(".claude/aos/scripts/", ""), mod)

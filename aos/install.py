@@ -88,9 +88,9 @@ def install(src: Path, target: Path, harness: str, in_place: bool, glob: bool, d
             (base / "agents" / f"{n}.toml").unlink(missing_ok=True)
         if hn == "claude":
             for f in (src / "agents").glob("*.md"):
-                put(base / "agents" / f.name, rewrite(f.read_text(encoding="utf-8"), prefix), dry)
+                put(base / "agents" / f.name, rewrite(pack.apply_blocks(f.read_text(encoding="utf-8"), profile), prefix), dry)
             for f in (src / "commands").glob("*.md"):
-                put(base / "commands" / f.name, rewrite(f.read_text(encoding="utf-8"), prefix), dry)
+                put(base / "commands" / f.name, rewrite(pack.apply_blocks(f.read_text(encoding="utf-8"), profile), prefix), dry)
             for n in legacy_cmds:
                 (base / "commands" / f"{n}.md").unlink(missing_ok=True)
         else:

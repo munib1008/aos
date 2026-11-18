@@ -67,7 +67,9 @@ def export(target: Path, in_place: bool = False, src: Path | None = None, prefix
         made["skills"].append(cm.stem)
     out_agents.mkdir(parents=True, exist_ok=True)
     for ag in sorted((src / "agents").glob("*.md")):
-        fm, body = split_frontmatter(ag.read_text(encoding="utf-8"))
+        import skillpack
+        prof = (src / "config" / "PROFILE").read_text().strip() if (src / "config" / "PROFILE").exists() else "default"
+        fm, body = split_frontmatter(skillpack.apply_blocks(ag.read_text(encoding="utf-8"), prof))
         tools = {t.strip() for t in fm.get("tools", "").split(",")}
         sandbox = "read-only" if tools <= {"Read", "Grep", "Glob"} else "workspace-write"   # Bash can write logs/state
         lines = [f"name = {toml_str(fm['name'])}", f"description = {toml_str(fm['description'])}"]

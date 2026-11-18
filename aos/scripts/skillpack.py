@@ -21,7 +21,7 @@ NOSCRIPT_CONFIG = ("models", "optimization", "security", "privacy", "skills", "p
 SCRIPT_TO_PROC = {"memory": "P1", "route_task": "P2", "select_skills": "P3", "build_context": "P4", "index_repository": "P9", "summarize_tests": "P5",
                   "summarize_changes": "P5", "session_manager": "P6", "create_handoff": "P7", "policy_guard": "P8", "video_pipeline": "P10",
                   "validate_memory": "P1", "validate_skills": "P11", "measure_usage": "P11", "benchmark_context": "P11", "discover_history": "P9",
-                  "export_codex": "P11", "audit_repo": "P9", "tccm": "P2", "omega": "P12", "omega_runner": "P12"}
+                  "export_codex": "P11", "audit_repo": "P9", "tccm": "P2", "omega": "P12", "omega_runner": "P12", "dualagent": "P12"}
 BLOCK = re.compile(r"<!-- profile:(\w+) -->(.*?)<!-- /profile -->", re.S)
 
 

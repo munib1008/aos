@@ -59,7 +59,7 @@ class PackageIntegrity(unittest.TestCase):
             self.assertTrue(0 < len(f["description"]) <= 1024, s)
             self.assertLess(len(s.read_text().splitlines()), 120, f"{s} should stay concise")
         agents = sorted((AOS / "agents").glob("*.md"))
-        self.assertEqual(len(agents), 9)
+        self.assertGreaterEqual(len(agents), 10); self.assertTrue((AOS / 'agents' / 'omega.md').exists())
         for a in agents:
             f = self.fm(a)
             self.assertEqual(f["name"], a.stem)

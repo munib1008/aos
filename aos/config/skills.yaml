@@ -41,3 +41,5 @@ skills:
     keywords: [local model, ollama, llama.cpp, vllm, offline, on-device, gpu]
   aos-model-routing:
     keywords: [route model, cheapest model, which model, free tier, escalate, fallback, limit reached]
+  aos-omega:
+    keywords: [complete the project, finish the project, production ready, audit the repository, transform, until done, autonomous, end to end, release readiness, omega]

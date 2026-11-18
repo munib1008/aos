@@ -37,3 +37,5 @@ skills:
     keywords: [ml, machine learning, llm, prompt, embedding, rag, classifier, computer vision]
   aos-security-review:
     keywords: [security, auth, permission, secret, vulnerab, injection, xss, csrf, encrypt, access control]
+  aos-omega:
+    keywords: [complete the project, finish the project, production ready, audit the repository, transform, until done, autonomous, end to end, release readiness, omega]

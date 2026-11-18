@@ -1,0 +1,77 @@
+# Project OMEGA policy. Numbers marked (assumption) are my defaults - tune them from your own results.
+version: 1
+
+autonomy:
+  # Routine, reversible work inside the approved scope never waits for approval. Guarded actions are QUEUED (not run) and the agent
+  # continues with independent work; they never block the loop. Hard-denied actions are refused outright.
+  unattended: true
+  protect_branches: [main, master, production, prod, release]   # pushes to these are guarded
+
+scorecard:                      # from the Project OMEGA spec: weights sum to 100
+  functional_completeness: 20
+  correctness_reliability: 15
+  security_data_integrity: 15
+  ux_accessibility: 15
+  architecture_maintainability: 10
+  performance: 10
+  test_automation: 10
+  documentation_operations: 5
+
+readiness:                      # (assumption) minimum weighted score; every level also needs 0 open critical items
+  staging: 60
+  uat: 75
+  production: 85                # production additionally needs a human-approved `production_release` entry
+
+priority_weights:               # (assumption) transparent backlog scoring; factors are 0-3
+  impact: 3
+  severity: 3
+  frequency: 2
+  user_impact: 2
+  data_risk: 4
+  security: 4
+  unblocks: 1                   # per dependent item
+  effort: -1
+  uncertainty: -0.5
+  regression_risk: -0.5
+
+runner:
+  max_cycles: 200
+  stall_cycles: 3               # stop after this many completed cycles with no measurable progress
+  min_wait_s: 60
+  margin_s: 60                  # added to a provider-stated reset time so we never come back early
+  backoff_s: [300, 900, 1800, 3600, 7200]   # used when the provider gives no reset time
+  max_wait_hours: 8             # longer waits (e.g. weekly limits): exit with a resume time for cron/scheduler
+
+guard:
+  deny:                         # refused, never queued
+    - '\b(curl|wget)\b[^|;]*\|\s*(sudo\s+)?(ba|z)?sh\b'
+    - '\bmkfs(\.\w+)?\b'
+    - '\bdd\s+if=.*\bof=/dev/'
+    - '\brm\s+-[a-z]*r[a-z]*f?[a-z]*\s+(/|~|\$HOME)(\s|/?$)'
+    - ':\(\)\s*\{'
+    - '\bchmod\s+-R\s+0?777\s+/'
+    - '\bcat\s+[^|;]*(\.ssh/id_|\.aws/credentials|\.netrc)'
+  guarded:                      # queued for a human, agent continues elsewhere
+    - '\bgit\s+push\b.*(--force|--force-with-lease|\s-f\b)'
+    - '\bgit\s+reset\s+--hard\b'
+    - '\bgit\s+clean\s+-[a-z]*f'
+    - '\bgit\s+branch\s+-D\b'
+    - '\bdrop\s+(table|database|schema)\b'
+    - '\btruncate\s+(table\s+)?\w+'
+    - '\bdelete\s+from\s+\w+\s*;?\s*$'
+    - '\bterraform\s+(apply|destroy)\b'
+    - '\bkubectl\s+(apply|delete|rollout|scale|drain)\b'
+    - '\bhelm\s+(install|upgrade|uninstall|rollback)\b'
+    - '\bvercel\b.*(--prod|promote|rollback)'
+    - '\b(npm|yarn|pnpm)\s+publish\b'
+    - '\btwine\s+upload\b'
+    - '\bgh\s+(release\s+create|pr\s+merge|repo\s+delete)\b'
+    - '\bdocker\s+(system\s+prune|volume\s+rm|rm\s+-f)\b'
+    - '\b(aws|gcloud|az)\b.*\b(delete|terminate|destroy|iam|put-bucket-policy|set-iam-policy)\b'
+    - '\bsupabase\s+db\s+(reset|push)\b'
+    - '\bprisma\s+migrate\s+(reset|deploy)\b'
+    - '\balembic\s+downgrade\b'
+    - '\b(sendmail|mailx?)\b'
+    - '\bsudo\b'
+    - '\bnpm\s+(i|install)\s+(-g|--global)\b'
+    - '\brm\s+-[a-z]*r[a-z]*\b(?!.*\b(node_modules|dist|build|\.next|__pycache__|\.pytest_cache|tmp|\.aos)\b)'

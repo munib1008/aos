@@ -41,7 +41,7 @@ NOSCRIPT_CONFIG = ("models", "optimization", "security", "privacy", "skills", "p
 SCRIPT_TO_PROC = {"memory": "P1", "route_task": "P2", "select_skills": "P3", "build_context": "P4", "index_repository": "P9", "summarize_tests": "P5",
                   "summarize_changes": "P5", "session_manager": "P6", "create_handoff": "P7", "policy_guard": "P8", "video_pipeline": "P10",
                   "validate_memory": "P1", "validate_skills": "P11", "measure_usage": "P11", "benchmark_context": "P11", "discover_history": "P9",
-                  "export_codex": "P11", "audit_repo": "P9", "tccm": "P2"}
+                  "export_codex": "P11", "audit_repo": "P9", "tccm": "P2", "omega": "P12", "omega_runner": "P12"}
 BLOCK = re.compile(r"<!-- profile:(\w+) -->(.*?)<!-- /profile -->", re.S)
 
 
@@ -119,7 +119,10 @@ def make_skill_dir(st: Path, profile: str, noscript: bool, out: Path) -> Path:
             if extra.is_file() and extra.name != "SKILL.md":
                 t = d / "modules" / "references" / n / extra.relative_to(sk.parent)
                 t.parent.mkdir(parents=True, exist_ok=True)
-                t.write_bytes(extra.read_bytes())
+                if noscript and extra.suffix == ".md":
+                    t.write_text(_module_text(extra.name, extra.read_text(encoding="utf-8"), True), encoding="utf-8")
+                else:
+                    t.write_bytes(extra.read_bytes())
     for f in sorted((st / "agents").glob("*.md")):
         t = f.read_text(encoding="utf-8").split("\n---\n", 1)[1]
         (d / "modules" / "agents" / f.name).write_text(_module_text(f.stem, t.lstrip("\n"), noscript), encoding="utf-8")

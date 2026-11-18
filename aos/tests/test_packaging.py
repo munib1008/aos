@@ -81,6 +81,33 @@ class Dist(unittest.TestCase):
         self.assertIn("~/.claude/aos/scripts/memory.py", t)
         self.assertTrue((home / ".claude/aos/scripts/memory.py").exists())
 
+    def test_omega_everywhere_and_global_install(self):
+        import install, os
+        for z in self.zips:
+            n = self.names(z)
+            self.assertTrue(any(x.endswith("omega.md") or x.endswith("omega.toml") or "agents/omega" in x for x in n) or "skill" in z.name, z.name)
+            if "claude-code" in z.name:
+                self.assertIn(".claude/agents/omega.md", n); self.assertIn(".claude/aos/scripts/omega_runner.py", n); self.assertIn(".claude/skills/aos-omega/references/MASTER_PROMPT.md", n)
+            if "codex" in z.name:
+                self.assertIn(".codex/agents/omega.toml", n); self.assertIn(".codex/skills/aos-omega/references/CONTINUE_PROMPT.md", n)
+            if z.name.endswith("-skill.zip"):
+                self.assertIn("aos/modules/agents/omega.md", n); self.assertIn("aos/scripts/omega.py", n); self.assertIn("aos/modules/references/aos-omega/references/CONTINUE_PROMPT.md", n)
+            if "noscript" in z.name:
+                self.assertIn("aos/modules/agents/omega.md", n)
+        dk = self.names(self.out / "aos-dormakaba-claude-code.zip")
+        self.assertIn(".claude/skills/aos-omega/references/domain-service-360.md", dk)
+        self.assertFalse(any("domain-service-360" in x for x in self.names(self.out / "aos-default-claude-code.zip")))
+        home = Path(tempfile.mkdtemp()); old = os.environ.get("HOME"); os.environ["HOME"] = str(home)
+        try:
+            install.main(["--global", "--harness", "both"])
+        finally:
+            os.environ["HOME"] = old or ""
+        t = (home / ".claude/agents/omega.md").read_text()
+        self.assertIn("~/.claude/aos/scripts/omega.py", t); self.assertNotIn(" aos/scripts/omega.py", t)
+        self.assertTrue((home / ".claude/aos/scripts/omega_runner.py").exists()); self.assertTrue((home / ".codex/agents/omega.toml").exists())
+        r = subprocess.run([sys.executable, str(home / ".claude/aos/scripts/omega.py"), "--root", str(home), "status"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
     def test_profile_install_bakes_overlay(self):
         import install
         from helpers import make_repo

@@ -1,0 +1,5 @@
+Continue Project OMEGA from the current repository state and the existing ledger (`python3 aos/scripts/omega.py status`, `.aos/omega/CHECKPOINT.md`, docs/implementation/*). Do not restart or repeat completed investigations.
+
+Take the highest-priority dependency-ready item (`omega.py next`) and complete it end to end: reuse existing code, implement the full frontend-to-backend workflow, preserve business rules and data integrity, add tests, validate actual behavior, resolve regressions, then record evidence (`omega.py backlog update ... --evidence ...`). Repeat. After functional gaps are closed, fix visual inconsistencies, accessibility defects and measured performance problems where there is a defensible benefit.
+
+Do not wait for approval on routine reversible work. Queue guarded actions (`omega.py guard`) and continue with independent items. If blocked, record the blocker and move on. Never fabricate completion, test results or production readiness. Stop when `omega.py done` succeeds; then run `omega.py gate` and `omega.py report` and give the final report.

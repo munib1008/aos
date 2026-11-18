@@ -53,3 +53,7 @@ Plan → script → storyboard → shot list → assets you own or are licensed 
 
 ## P11 Learning and audit
 After significant tasks record verified lessons via P1. Compare model choices, retries and context size against outcomes. Changes to routing thresholds need evidence from several tasks and human approval. Do not claim cost savings without matched measurements.
+
+## P12 Project OMEGA (script-free)
+Keep `docs/implementation/MASTER_BACKLOG.md` (one row per gap: id, category, severity, factors 0-3, dependencies, status, evidence) and `docs/implementation/COMPLETION_STATUS.md`. Status values: not_started, in_progress, completed, failed, blocked, needs_verification, out_of_scope. An item is completed only with evidence you can point to: a test run that passed (command and result), a file and line, a commit, or a document. Work in dependency order (authentication, authorization, data, workflows, UI, end-to-end tests); critical security and data-integrity items first. Do not wait for approval on routine reversible work; for destructive, deployment, non-local migration, cloud or policy actions write the request to the backlog as blocked and continue with independent items. Score the 100-point scorecard (functional 20, correctness 15, security 15, UX 15, architecture 10, performance 10, tests 10, docs and operations 5) only from evidence. Release readiness is staging, UAT or production, and production needs a human decision. After a usage limit resets, resume from the two files; never retry in a loop.
+

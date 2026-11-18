@@ -97,7 +97,7 @@ def install(src: Path, target: Path, harness: str, in_place: bool, glob: bool, d
             body = rewrite((src / "AGENTS.md").read_text(encoding="utf-8"), None if in_place else (".codex/aos" if harness == "codex" else ".claude/aos"))
             block(target / "AGENTS.md", body, dry, False)
             if harness in ("claude", "both"):
-                block(target / "CLAUDE.md", "@AGENTS.md\n\nAOS slash commands: /aos-optimize /aos-scan /aos-route /aos-learn /aos-fork /aos-resume /aos-handoff /aos-audit /aos-video", dry, False)
+                block(target / "CLAUDE.md", "@AGENTS.md\n\nAOS slash commands: /aos-optimize /aos-scan /aos-route /aos-learn /aos-fork /aos-resume /aos-handoff /aos-audit /aos-video /omega", dry, False)
             gi = target / ".gitignore"
             cur = gi.read_text(encoding="utf-8") if gi.exists() else ""
             if ".aos/" not in cur.split() and not dry:

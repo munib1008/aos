@@ -31,26 +31,11 @@ SRC = HERE.parent                                   # the repo's aos/ directory
 sys.path.insert(0, str(SRC / "scripts"))
 sys.path.insert(0, str(SRC))
 from aos_lib import contains_secret, parse_yaml     # noqa: E402
+from skillpack import apply_blocks, make_skill_dir, TCCM_SKILLS, TCCM_COMMANDS  # noqa: E402,F401
 
 PROFILES = ("default", "dormakaba")
 STAMP = (2026, 11, 17, 0, 0, 0)
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".aos", "packaging", "profiles")
-TCCM_SKILLS = {"aos-token-capacity", "aos-local-inference", "aos-model-routing"}
-TCCM_COMMANDS = {"aos-capacity", "aos-model"}
-NOSCRIPT_CONFIG = ("models", "optimization", "security", "privacy", "skills", "projects", "dormakaba-policy")
-SCRIPT_TO_PROC = {"memory": "P1", "route_task": "P2", "select_skills": "P3", "build_context": "P4", "index_repository": "P9", "summarize_tests": "P5",
-                  "summarize_changes": "P5", "session_manager": "P6", "create_handoff": "P7", "policy_guard": "P8", "video_pipeline": "P10",
-                  "validate_memory": "P1", "validate_skills": "P11", "measure_usage": "P11", "benchmark_context": "P11", "discover_history": "P9",
-                  "export_codex": "P11", "audit_repo": "P9", "tccm": "P2", "omega": "P12", "omega_runner": "P12"}
-BLOCK = re.compile(r"<!-- profile:(\w+) -->(.*?)<!-- /profile -->", re.S)
-
-
-def apply_blocks(text: str, profile: str) -> str:
-    text = BLOCK.sub(lambda m: m.group(2) if m.group(1) == profile else "", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return re.sub(r"[ \t]+\n", "\n", text)
-
-
 def _yaml(profile: str, name: str) -> dict:
     p = SRC / "profiles" / profile / name
     return parse_yaml(p.read_text(encoding="utf-8")) if p.exists() else {}
@@ -80,6 +65,9 @@ def stage(profile: str, out_root: Path) -> Path:
     else:
         for rel in ("scripts/policy_guard.py", "tests/test_dormakaba_policy.py"):
             (dst / rel).unlink(missing_ok=True)
+    notes = (SRC.parent / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8") if (SRC.parent / "THIRD_PARTY_NOTICES.md").exists() else ""
+    extra = SRC / "profiles" / profile / "NOTICES.extra.md"
+    (dst / "THIRD_PARTY_NOTICES.md").write_text(notes.rstrip() + "\n" + (("\n" + extra.read_text(encoding="utf-8")) if extra.exists() else ""), encoding="utf-8")
     for f in dst.rglob("*.md"):
         t = f.read_text(encoding="utf-8")
         if "<!-- profile:" in t:
@@ -87,94 +75,9 @@ def stage(profile: str, out_root: Path) -> Path:
     return dst
 
 
-# ----------------------------------------------------------------------------- single-skill form
-def _module_text(name: str, body: str, noscript: bool) -> str:
-    if not noscript:
-        return body.replace("python3 aos/scripts/", "python3 scripts/").replace("aos/scripts/", "scripts/").replace("aos/docs/", "docs/")
-
-    def sub(m):
-        s = re.search(r"([a-z_]+)\.py", m.group(0))
-        return f"(procedure {SCRIPT_TO_PROC.get(s.group(1), 'P2')} in procedures.md)" if s else m.group(0)
-    body = re.sub(r"`python3 aos/scripts/[^`]*`", sub, body)
-    body = re.sub(r"aos/scripts/(\w+)\.py", lambda m: f"procedure {SCRIPT_TO_PROC.get(m.group(1), 'P2')}", body)
-    return body.replace("aos/docs/", "docs/")
-
-
-def make_skill_dir(st: Path, profile: str, noscript: bool, out: Path) -> Path:
-    d = out / "aos"
-    (d / "modules" / "skills").mkdir(parents=True)
-    (d / "modules" / "agents").mkdir()
-    (d / "modules" / "commands").mkdir()
-    skills = []
-    for sk in sorted((st / "skills").glob("*/SKILL.md")):
-        n = sk.parent.name
-        if noscript and n in TCCM_SKILLS:
-            continue
-        text = sk.read_text(encoding="utf-8")
-        body = text.split("\n---\n", 1)[1] if text.startswith("---\n") else text
-        desc = re.search(r"^description:\s*(.+)$", text, re.M)
-        (d / "modules" / "skills" / f"{n}.md").write_text(f"<!-- {n}: {desc.group(1)[:200] if desc else ''} -->\n" + _module_text(n, body.lstrip("\n"), noscript), encoding="utf-8")
-        skills.append(n)
-        for extra in sk.parent.rglob("*"):
-            if extra.is_file() and extra.name != "SKILL.md":
-                t = d / "modules" / "references" / n / extra.relative_to(sk.parent)
-                t.parent.mkdir(parents=True, exist_ok=True)
-                if noscript and extra.suffix == ".md":
-                    t.write_text(_module_text(extra.name, extra.read_text(encoding="utf-8"), True), encoding="utf-8")
-                else:
-                    t.write_bytes(extra.read_bytes())
-    for f in sorted((st / "agents").glob("*.md")):
-        t = f.read_text(encoding="utf-8").split("\n---\n", 1)[1]
-        (d / "modules" / "agents" / f.name).write_text(_module_text(f.stem, t.lstrip("\n"), noscript), encoding="utf-8")
-    for f in sorted((st / "commands").glob("*.md")):
-        if noscript and f.stem in TCCM_COMMANDS:
-            continue
-        (d / "modules" / "commands" / f.name).write_text(_module_text(f.stem, f.read_text(encoding="utf-8").split("\n---\n", 1)[1].lstrip("\n"), noscript), encoding="utf-8")
-    cfg = d / "config"
-    cfg.mkdir()
-    for f in (st / "config").glob("*"):
-        if f.suffix in (".yaml", "") and (not noscript or f.stem in NOSCRIPT_CONFIG or f.name == "PROFILE"):
-            shutil.copy(f, cfg / f.name)
-    shutil.copytree(st / "templates", d / "templates")
-    (d / "docs").mkdir()
-    for f in ("DESIGN.md", "BENCHMARKS.md", "COMPATIBILITY.md", "DORMAKABA_POLICY.md", "BUILD_VS_REUSE.md", "REUSE_LOG.md"):
-        if (st / "docs" / f).exists() and not (noscript and f in ("BUILD_VS_REUSE.md", "REUSE_LOG.md")):
-            txt = (st / "docs" / f).read_text(encoding="utf-8")
-            (d / "docs" / f).write_text(_module_text(f, txt, True) if noscript else txt, encoding="utf-8")
-    if not noscript:
-        shutil.copytree(st / "scripts", d / "scripts", ignore=IGNORE)
-        if (st / "core").exists():
-            shutil.copytree(st / "core", d / "core", ignore=IGNORE)
-    else:
-        shutil.copy(HERE / "procedures.md", d / "procedures.md")
-        apply = apply_blocks((d / "procedures.md").read_text(encoding="utf-8"), profile)
-        (d / "procedures.md").write_text(apply, encoding="utf-8")
-    core = [s for s in skills if s.startswith("aos-") and s in ("aos-optimize", "aos-task-router", "aos-context", "aos-repo-scan", "aos-validation", "aos-learning", "aos-session-fork", "aos-handoff")]
-    spec = [s for s in skills if s not in core and s not in TCCM_SKILLS and s not in ("model-advisor", "humanizer")]
-    mods = ["- Core: " + ", ".join(f"`modules/skills/{s}.md`" for s in core),
-            "- Specialist: " + ", ".join(f"`modules/skills/{s}.md`" for s in spec)]
-    comp = [s for s in ("model-advisor", "humanizer") if s in skills]
-    if comp:
-        mods.append("- Companion: " + ", ".join(f"`modules/skills/{s}.md`" for s in comp))
-    tc = [s for s in skills if s in TCCM_SKILLS]
-    if tc:
-        mods.append("- Capacity and routing (TCCM): " + ", ".join(f"`modules/skills/{s}.md`" for s in tc))
-    mods += ["- Agent roles: `modules/agents/` (orchestrator, router, navigator, context-optimizer, session-manager, handoff, learning, testing, minimal-change)", "- Slash-command prompts: `modules/commands/`"]
-    tpl = (HERE / ("SKILL.noscript.md" if noscript else "SKILL.script.md")).read_text(encoding="utf-8")
-    skill = apply_blocks(tpl.replace("{{MODULES}}", "\n".join(mods)).replace("{{TITLE_SUFFIX}}", " (dormakaba build)" if profile == "dormakaba" else ""), profile)
-    (d / "SKILL.md").write_text(skill, encoding="utf-8")
-    notices = (SRC.parent / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8") if (SRC.parent / "THIRD_PARTY_NOTICES.md").exists() else ""
-    extra = SRC / "profiles" / profile / "NOTICES.extra.md"
-    (d / "THIRD_PARTY_NOTICES.md").write_text(notices.rstrip() + "\n" + (("\n" + extra.read_text(encoding="utf-8")) if extra.exists() else ""), encoding="utf-8")
-    (d / "README.md").write_text(f"# AOS skill ({profile}{', script-free' if noscript else ''})\n\nInstall: Claude Code `~/.claude/skills/aos/` (or `<project>/.claude/skills/aos/`); Codex `~/.codex/skills/aos/`; "
-                                 + ("claude.ai: upload this folder as a skill (Settings > Capabilities > Skills).\n" if noscript else "scripts need Python 3.9+ and run from this folder (`python3 scripts/route_task.py --help`).\n")
-                                 + "Entry point: SKILL.md. Honest limits: routing is uncalibrated; savings are unmeasured (docs/BENCHMARKS.md).\n", encoding="utf-8")
-    return d
-
-
 # ----------------------------------------------------------------------------- project bundles
 def make_project_dir(st: Path, harness: str, out: Path, profile: str) -> Path:
-    sys.path.insert(0, str(st))
+    sys.path.insert(0, str(st / "scripts"))
     import importlib.util
     spec = importlib.util.spec_from_file_location("aos_install_staged", st / "install.py")
     mod = importlib.util.module_from_spec(spec)
@@ -260,9 +163,9 @@ def verify_zip(z: Path) -> list[str]:
                 continue
             if contains_secret(txt) and "tests" not in f.parts and f.name not in ("aos_lib.py",):
                 errs.append(f"{name}: secret-like text in {f.relative_to(t)}")
-            if prof == "default" and re.search(r"dormakaba|AI Platform|Frontify", txt, re.I):
+            if f.suffix != ".py" and prof == "default" and re.search(r"dormakaba|AI Platform|Frontify", txt, re.I):
                 errs.append(f"{name}: dormakaba-internal text in {f.relative_to(t)}")
-            if "<!-- profile:" in txt:
+            if f.suffix != ".py" and "<!-- profile:" in txt:
                 errs.append(f"{name}: unprocessed profile marker in {f.relative_to(t)}")
         if name.endswith("-skill.zip") or name.endswith("-skill-noscript.zip"):
             sk = t / "aos" / "SKILL.md"
@@ -287,18 +190,20 @@ def verify_zip(z: Path) -> list[str]:
         else:
             h = ".claude" if "claude-code" in name else ".codex"
             skills = t / h / "skills"
-            for sk in skills.glob("*/SKILL.md"):
+            found = list(skills.glob("*/SKILL.md"))
+            for sk in found:
                 errs += validate_skill(sk)
-            if len(list(skills.glob("*/SKILL.md"))) < 10:
-                errs.append(f"{name}: too few skills installed")
+            if [x.parent.name for x in found] != ["aos"]:
+                errs.append(f"{name}: expected exactly one master skill 'aos', found {[x.parent.name for x in found]}")
+            if not (skills / "aos" / "modules" / "skills" / "aos-optimize.md").exists():
+                errs.append(f"{name}: master skill modules missing")
             rt = t / h / "aos" / "scripts"
             r = subprocess.run([sys.executable, str(rt / "route_task.py"), "implement a new export endpoint"], cwd=t, capture_output=True, text=True)
             if r.returncode != 0:
                 errs.append(f"{name}: runtime smoke failed: {r.stderr[-200:]}")
-            if h == ".claude" and not list((t / ".claude" / "agents").glob("*.md")):
-                errs.append(f"{name}: no agents")
-            if h == ".codex" and not list((t / ".codex" / "agents").glob("*.toml")):
-                errs.append(f"{name}: no codex agents")
+            ag = [x.name for x in (t / h / "agents").glob("*")]
+            if ag != ["aos.md" if h == ".claude" else "aos.toml"]:
+                errs.append(f"{name}: expected exactly one master agent, found {ag}")
         if prof == "dormakaba":
             root = next((p for p in (t / "aos", t / ".claude" / "aos", t / ".codex" / "aos") if (p / "config").exists()), None)
             if root is None:

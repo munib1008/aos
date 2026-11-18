@@ -1,5 +1,5 @@
 <!-- AOS:BEGIN -->
 @AGENTS.md
 
-AOS slash commands: /aos-optimize /aos-scan /aos-route /aos-learn /aos-fork /aos-resume /aos-handoff /aos-audit /aos-video /omega
+AOS: one master agent and one skill. Run `claude --agent aos "<task or goal>"` or /aos <task>.
 <!-- AOS:END -->

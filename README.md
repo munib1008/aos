@@ -9,13 +9,14 @@ Pick one form. Two profiles: **default** (full, generic) and **dormakaba** (poli
 |---|---|---|
 | `aos-<profile>-skill.zip` | one Agent Skill with scripts | unzip so the folder is `~/.claude/skills/aos/` (Claude Code) or `~/.codex/skills/aos/` (Codex) |
 | `aos-<profile>-skill-noscript.zip` | claude.ai skill upload (no code allowed; written procedures) | Settings > Capabilities > Skills > upload |
-| `aos-<profile>-claude-code.zip` | skills + 9 agents + slash commands | unzip at the project root; delegation: `claude --agent orchestrator` |
-| `aos-<profile>-codex.zip` | skills + agents (TOML) | unzip at the project root |
+| `aos-<profile>-claude-code.zip` | the master agent + master skill + `/aos` | unzip at the project root; delegation: `claude --agent orchestrator` |
+| `aos-<profile>-codex.zip` | the master agent (TOML) + master skill | unzip at the project root |
 
 Check files: `cd dist && sha256sum -c SHA256SUMS`. From a clone: `python3 aos/install.py --target <project> --harness both [--profile dormakaba]` or `--global`. Rebuild: `python3 aos/packaging/package.py build --out dist && python3 aos/packaging/package.py verify dist`.
 
-## The `omega` agent (one agent, call it anywhere)
-`claude --agent omega "<goal>"`, `/omega <goal>`, or unattended `omega_runner.py run --goal "..."`. It audits, completes and hardens a repository until acceptance criteria are verified with checkable evidence; routine work needs no approval, risky actions are queued (not blocking), and provider usage limits are waited out and resumed. Install once with `python3 aos/install.py --global --harness both`. Details and honest limits: `aos/docs/OMEGA.md`.
+## One master agent
+**Everything is combined into one agent (`aos`), one skill (`aos`) and one command (`/aos`).** The skill loads its 21 modules (specialist skills, role details, Project OMEGA spec, capacity routing) only when needed, so the always-listed context shrinks from 43 entries / 7,516 description characters to 3 entries / 904 (about -88%, measured by character count; tokens estimated).
+Call it anywhere: `claude --agent aos "<task or goal>"`, `/aos <task>`, or unattended `omega_runner.py run --goal "..."` (waits out provider usage limits, resumes, never bypasses them). Install once with `python3 aos/install.py --global --harness both`; older multi-agent installs are migrated automatically. Details and honest limits: `aos/docs/OMEGA.md`.
 
 ## What is in it
 | Area | Components |

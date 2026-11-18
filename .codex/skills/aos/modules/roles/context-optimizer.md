@@ -1,0 +1,2 @@
+Use `python3 aos/scripts/build_context.py "<task>" --criteria "..." [--level N]`. Load P0-P3 first; P4-P6 only on need.
+Trim rules: keep task, acceptance criteria, safety/security invariants, affected code snippets, failing test names + error excerpts + log paths. Drop duplicated tool results, superseded plans and resolved dead ends (keep one line on rejected approaches). Never drop an error message needed for diagnosis; point to the saved log instead. Report estimated tokens as estimates.

@@ -5,8 +5,8 @@
   python3 aos/install.py --global [--harness ...] [--profile ...]      # ~/.claude and/or ~/.codex, absolute-style paths
   python3 aos/install.py --target P --uninstall | --dry-run
 
-Claude Code : <target>/.claude/{agents,skills,commands} + runtime in .claude/aos
-Codex       : <target>/.codex/{skills,agents} + runtime in .codex/aos
+Claude Code : <target>/.claude/agents/aos.md + .claude/skills/aos/ + .claude/commands/aos.md + runtime in .claude/aos
+Codex       : <target>/.codex/agents/aos.toml + .codex/skills/aos/ + runtime in .codex/aos
 --profile builds the profile distribution first (config overlay baked in, forbidden features removed) and installs that.
 Idempotent; appends a marked AOS block to AGENTS.md/CLAUDE.md (never overwrites), adds `.aos/` to .gitignore (project installs).
 When target == the AOS source repo itself, the runtime is used in place (aos/scripts).
@@ -54,38 +54,50 @@ def block(path: Path, body: str, dry: bool, uninstall: bool) -> None:
 
 
 def install(src: Path, target: Path, harness: str, in_place: bool, glob: bool, dry: bool, uninstall: bool) -> None:
-    names = {"agents": sorted((src / "agents").glob("*.md")), "commands": sorted((src / "commands").glob("*.md")),
-             "skills": sorted((src / "skills").glob("*/SKILL.md"))}
+    """One master agent (`aos`), ONE master skill (`aos`, modules read on demand), one /aos command, runtime scripts."""
+    legacy_agents = [f.stem for f in (src / "roles").glob("*.md")] if (src / "roles").exists() else []
+    legacy_skills = [f.parent.name for f in (src / "skills").glob("*/SKILL.md")]
+    legacy_cmds = [f.stem for f in (src / "roles" / "commands").glob("*.md")] + ["omega"] if (src / "roles").exists() else ["omega"]
     for hn in ("claude", "codex"):
         if harness not in (hn, "both"):
             continue
         base = target / f".{hn}"
-        prefix = None if in_place else (f"~/.{hn}/aos" if glob else f".{hn}/aos")
+        prefix = "aos" if in_place else (f"~/.{hn}/aos" if glob else f".{hn}/aos")
         if uninstall:
-            for kind, files in names.items():
-                for f in files:
-                    p = base / kind / (f.parent.name if kind == "skills" else f.name)
-                    if not dry:
-                        shutil.rmtree(p, ignore_errors=True) if kind == "skills" else p.unlink(missing_ok=True)
-            if hn == "codex" and not dry:
-                shutil.rmtree(base / "agents", ignore_errors=True)
             if not dry:
-                shutil.rmtree(base / "aos", ignore_errors=True)
+                for p_ in (base / "skills" / "aos", base / "aos"):
+                    shutil.rmtree(p_, ignore_errors=True)
+                (base / "agents" / ("aos.md" if hn == "claude" else "aos.toml")).unlink(missing_ok=True)
+                (base / "commands" / "aos.md").unlink(missing_ok=True)
             continue
+        if dry:
+            print("would install master agent/skill into", base)
+            continue
+        sys.path.insert(0, str(src / "scripts"))
+        import skillpack as pack
+        profile = (src / "config" / "PROFILE").read_text().strip() if (src / "config" / "PROFILE").exists() else "default"
+        tmp = Path(tempfile.mkdtemp(prefix="aos-skill-"))
+        skill_dir = pack.make_skill_dir(src, profile, False, tmp, prefix)
+        shutil.rmtree(base / "skills" / "aos", ignore_errors=True)
+        shutil.copytree(skill_dir, base / "skills" / "aos")
+        for n in legacy_skills:                                   # migrate older granular installs
+            if n != "aos":
+                shutil.rmtree(base / "skills" / n, ignore_errors=True)
+        for n in legacy_agents:
+            (base / "agents" / f"{n}.md").unlink(missing_ok=True)
+            (base / "agents" / f"{n}.toml").unlink(missing_ok=True)
         if hn == "claude":
-            for f in names["agents"] + names["commands"]:
-                put(base / f.parent.name / f.name, rewrite(f.read_text(encoding="utf-8"), prefix), dry)
-            for f in names["skills"]:
-                put(base / "skills" / f.parent.name / "SKILL.md", rewrite(f.read_text(encoding="utf-8"), prefix), dry)
-                for extra in f.parent.rglob("*"):
-                    if extra.is_file() and extra.name != "SKILL.md":
-                        put(base / "skills" / f.parent.name / extra.relative_to(f.parent), extra.read_text(encoding="utf-8"), dry)
+            for f in (src / "agents").glob("*.md"):
+                put(base / "agents" / f.name, rewrite(f.read_text(encoding="utf-8"), prefix), dry)
+            for f in (src / "commands").glob("*.md"):
+                put(base / "commands" / f.name, rewrite(f.read_text(encoding="utf-8"), prefix), dry)
+            for n in legacy_cmds:
+                (base / "commands" / f"{n}.md").unlink(missing_ok=True)
         else:
-            if not dry:
-                sys.path.insert(0, str(src / "scripts"))
-                import export_codex
-                export_codex.export(target, in_place, src=src, prefix=prefix)
-        if not in_place and not dry:
+            sys.path.insert(0, str(src / "scripts"))
+            import export_codex
+            export_codex.export(target, in_place, src=src, prefix=prefix, skills=False)
+        if not in_place:
             for sub in RUNTIME:
                 if (src / sub).exists():
                     shutil.copytree(src / sub, base / "aos" / sub, dirs_exist_ok=True, ignore=IGNORE)
@@ -97,7 +109,7 @@ def install(src: Path, target: Path, harness: str, in_place: bool, glob: bool, d
             body = rewrite((src / "AGENTS.md").read_text(encoding="utf-8"), None if in_place else (".codex/aos" if harness == "codex" else ".claude/aos"))
             block(target / "AGENTS.md", body, dry, False)
             if harness in ("claude", "both"):
-                block(target / "CLAUDE.md", "@AGENTS.md\n\nAOS slash commands: /aos-optimize /aos-scan /aos-route /aos-learn /aos-fork /aos-resume /aos-handoff /aos-audit /aos-video /omega", dry, False)
+                block(target / "CLAUDE.md", "@AGENTS.md\n\nAOS: one master agent and one skill. Run `claude --agent aos \"<task or goal>\"` or /aos <task>.", dry, False)
             gi = target / ".gitignore"
             cur = gi.read_text(encoding="utf-8") if gi.exists() else ""
             if ".aos/" not in cur.split() and not dry:

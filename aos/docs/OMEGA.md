@@ -1,18 +1,18 @@
-# Project OMEGA - the `omega` agent
+# Project OMEGA - part of the one `aos` master agent
 
-One agent you can call from any repository: it audits what really exists, completes and hardens it, and keeps going until the acceptance criteria are **verified with evidence**. It does not stop to ask for routine approvals, and it waits out provider usage limits instead of failing.
+OMEGA is the goal-driven mode of the single AOS master agent (`claude --agent aos`). Everything below applies to that agent. One agent you can call from any repository: it audits what really exists, completes and hardens it, and keeps going until the acceptance criteria are **verified with evidence**. It does not stop to ask for routine approvals, and it waits out provider usage limits instead of failing.
 
 ## Install once, call anywhere
 ```bash
 python3 aos/install.py --global --harness both            # ~/.claude/{agents,skills,commands} + ~/.codex/..., runtime in ~/.claude/aos
 python3 aos/scripts/omega_runner.py setup-hook --global    # guard hook in ~/.claude/settings.json (verify with /hooks)
 ```
-Or unzip a `*-claude-code.zip` / `*-codex.zip` from `dist/` into a project (project-local).
+Or unzip a `*-claude-code.zip` / `*-codex.zip` from `dist/` into a project (project-local). Each installs exactly one agent (`aos`), one skill (`aos`) and one command (`/aos`).
 
 ## Three ways to run it
 | Way | Command | Use |
 |---|---|---|
-| Interactive | `claude --agent omega "Complete <project>; accept: ..."` or `/omega <goal>` | you watch, it works |
+| Interactive | `claude --agent aos "Complete <project>; accept: ..."` or `/aos <goal>` | you watch, it works |
 | Unattended | `python3 ~/.claude/aos/scripts/omega_runner.py run --goal "..." --accept "..." [--repo URL]` | loops headless cycles until `omega.py done`; waits on limits |
 | Scheduled | cron/Task Scheduler runs the same `omega_runner.py run ...` every 30 min | restarts after long waits; a lock prevents double-runs |
 Generic tools: `--tool codex` or `--cmd "mytool --prompt {prompt}"`. Stop cleanly: `omega_runner.py stop`. Look: `omega_runner.py status`.
@@ -32,4 +32,4 @@ Inside an interactive session the agent checkpoints and, if a scheduling tool ex
 `.aos/omega/`: `state.json` (goal, acceptance, features), `backlog.json` (dependency graph, priority breakdown), `scorecard.json`, `approvals.json`, `runs.jsonl`, `CHECKPOINT.md`. `omega.py report` writes `docs/implementation/MASTER_BACKLOG.md` and `COMPLETION_STATUS.md`. Completion needs evidence the tool can check (`test:<cmd> => PASSED`, `file:`, `commit:`, `doc:`, `url:`, `run:`); fabricated or later-broken evidence fails `omega.py gate`. Score weights (functional 20, correctness 15, security 15, UX 15, architecture 10, performance 10, tests 10, docs/ops 5) and level thresholds (staging 60 / UAT 75 / production 85) come from your spec; **the thresholds are my assumptions**. Critical or high security/data items open = `not_ready` regardless of score. The runner stops when `omega.py done` is true, or on stall (no change for 3 cycles), 200 cycles, or repeated failures.
 
 ## What is verified and what is not
-Verified here: ledger, evidence checks, priority/dependency order, gate levels, guard rules, hook protocol logic, limit parsing, wait/resume/stall/lock behavior (29 tests, including a real child process that hits a limit, waits, resumes and finishes), and that the installed Claude Code (2.1.327) has the flags the preset uses and loads the `omega` agent. **Not verified**: a real provider usage limit end to end; the guard hook firing inside live Claude Code (a nested permission-bypass test was refused by the safety classifier and not worked around); the Codex preset (Codex not installed); unattended runs on a real repository such as dk-Service (this sandbox has no access to it); "1000x" - OMEGA measures against a baseline, it does not guarantee a multiple.
+Verified here: ledger, evidence checks, priority/dependency order, gate levels, guard rules, hook protocol logic, limit parsing, wait/resume/stall/lock behavior (29 tests, including a real child process that hits a limit, waits, resumes and finishes), and that the installed Claude Code (2.1.327) has the flags the preset uses and loads the master agent. **Not verified**: a real provider usage limit end to end; the guard hook firing inside live Claude Code (a nested permission-bypass test was refused by the safety classifier and not worked around); the Codex preset (Codex not installed); unattended runs on a real repository such as dk-Service (this sandbox has no access to it); "1000x" - OMEGA measures against a baseline, it does not guarantee a multiple.

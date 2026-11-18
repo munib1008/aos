@@ -70,7 +70,7 @@ class CodexExport(unittest.TestCase):
         t = Path(tempfile.mkdtemp())
         r = export_codex.export(t)
         self.assertEqual(r["errors"], [])
-        self.assertGreaterEqual(len(r["skills"]), 14)
+        self.assertGreaterEqual(len(r["skills"]), 14)       # granular export tool still available for advanced use
         for s in (t / ".codex/skills").glob("*/SKILL.md"):
             txt = s.read_text()
             self.assertNotIn("allowed-tools", txt); self.assertNotIn("\ntools:", txt); self.assertNotIn("$ARGUMENTS", txt)
@@ -80,14 +80,10 @@ class CodexExport(unittest.TestCase):
             import tomllib
         except ImportError:
             return
-        for f in (t / ".codex/agents").glob("*.toml"):
-            d = tomllib.loads(f.read_text())
-            self.assertEqual(d["name"], f.stem)
-            self.assertIn(d["sandbox_mode"], ("read-only", "workspace-write"))
-        nav = tomllib.loads((t / ".codex/agents/repository-navigator.toml").read_text())
-        self.assertEqual(nav["sandbox_mode"], "workspace-write")   # uses Bash -> writes .aos/index.json, so not read-only
-        eng = tomllib.loads((t / ".codex/agents/minimal-change-engineer.toml").read_text())
-        self.assertEqual(eng["sandbox_mode"], "workspace-write")
+        self.assertEqual([f.name for f in (t / ".codex/agents").glob("*.toml")], ["aos.toml"])
+        d = tomllib.loads((t / ".codex/agents/aos.toml").read_text())
+        self.assertEqual(d["name"], "aos"); self.assertEqual(d["sandbox_mode"], "workspace-write")     # Bash/Edit/Write: not read-only
+        self.assertIn("developer_instructions", d)
 
     def test_spec_validator_catches_violations(self):
         d = Path(tempfile.mkdtemp())

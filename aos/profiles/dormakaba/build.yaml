@@ -4,6 +4,6 @@ version: 1
 # Everything below is removed from the dormakaba build. The Token Capacity & Compute Manager (TCCM) depends on or describes
 # features the policy disables (local runtimes, free tiers, credits, automatic switching), so the whole module is left out.
 # Enabling any of it later needs a policy decision first.
-exclude: [config/credits.yaml, config/compute.yaml, config/routing.yaml, core, scripts/tccm.py, skills/aos-token-capacity, skills/aos-local-inference, skills/aos-model-routing, commands/aos-capacity.md, commands/aos-model.md]
+exclude: [config/credits.yaml, config/compute.yaml, config/routing.yaml, core, scripts/tccm.py, skills/aos-token-capacity, skills/aos-local-inference, skills/aos-model-routing, roles/commands/aos-capacity.md, roles/commands/aos-model.md]
 generic_only_tests: [test_tccm.py, fakeserver.py]
 strip_blocks: [default]

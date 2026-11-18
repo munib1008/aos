@@ -81,7 +81,7 @@ def build_cmd(tool: str, prompt: str, resume: bool, mode: str, custom: str | Non
     if custom:
         return [prompt if t == "{prompt}" else t.replace("{prompt}", prompt) for t in shlex.split(custom)]
     if tool == "claude":
-        return ["claude", "-p", prompt, "--agent", "omega", "--permission-mode", mode] + (["--continue"] if resume else []) + extra
+        return ["claude", "-p", prompt, "--agent", "aos", "--permission-mode", mode] + (["--continue"] if resume else []) + extra
     if tool == "codex":                                   # preset not verified in the build sandbox (codex not installed)
         return (["codex", "exec", "resume", "--last", prompt] if resume else ["codex", "exec", prompt]) + extra
     raise SystemExit("--tool must be claude or codex, or pass --cmd with {prompt}")
@@ -107,7 +107,8 @@ def initial_prompt(goal: str, accept: list[str]) -> str:
 
 
 def continue_prompt() -> str:
-    for p in (AOS_DIR / "skills" / "aos-omega" / "references" / "CONTINUE_PROMPT.md", AOS_DIR / "modules" / "references" / "aos-omega" / "references" / "CONTINUE_PROMPT.md"):
+    for p in (AOS_DIR / "skills" / "aos-omega" / "references" / "CONTINUE_PROMPT.md", AOS_DIR / "modules" / "references" / "aos-omega" / "references" / "CONTINUE_PROMPT.md",
+              AOS_DIR.parent / "skills" / "aos" / "modules" / "references" / "aos-omega" / "references" / "CONTINUE_PROMPT.md"):
         if p.exists():
             return p.read_text(encoding="utf-8")
     return "Continue Project OMEGA from the current repository state and the existing ledger (`omega.py status`). Do not restart. Complete the highest-priority dependency-ready items with evidence."

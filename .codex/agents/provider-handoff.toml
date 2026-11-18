@@ -1,4 +1,0 @@
-name = "provider-handoff"
-description = "Exports a compact provider-neutral handoff (HANDOFF.md, TASK_CONTEXT.json, ...) so ChatGPT/Codex or another agent can continue. Use when switching provider or ending a long task."
-sandbox_mode = "workspace-write"
-developer_instructions = "Run `python3 aos/scripts/create_handoff.py [--session ID]`, then read HANDOFF.md once to confirm it is accurate and secret-free. Tell the user the folder path and the continuation prompt. Do not claim any synchronization with ChatGPT/Codex: the user must provide the folder and confirm the receiver has repo access. Do not assume a ChatGPT subscription includes API credits. Include the receiver's validation steps (branch, commit, git status, migrations, rerun tests)."

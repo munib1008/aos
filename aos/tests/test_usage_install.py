@@ -59,17 +59,16 @@ class PackageIntegrity(unittest.TestCase):
             self.assertTrue(0 < len(f["description"]) <= 1024, s)
             self.assertLess(len(s.read_text().splitlines()), 120, f"{s} should stay concise")
         agents = sorted((AOS / "agents").glob("*.md"))
-        self.assertGreaterEqual(len(agents), 10); self.assertTrue((AOS / 'agents' / 'omega.md').exists())
-        for a in agents:
-            f = self.fm(a)
-            self.assertEqual(f["name"], a.stem)
-            self.assertIn(f["model"], {"inherit", "haiku", "sonnet", "opus"})
-            self.assertTrue(f["tools"] and f["description"])
-        skill_names = {s.parent.name for s in skills}
-        for c in (AOS / "commands").glob("*.md"):
-            body = c.read_text()
-            self.assertTrue(any(n in body for n in skill_names), c)
-        self.assertTrue({"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit", "aos-video"} <= {c.stem for c in (AOS / "commands").glob("*.md")})
+        self.assertEqual([a.stem for a in agents], ["aos"])                       # ONE master agent
+        f = self.fm(agents[0])
+        self.assertEqual(f["name"], "aos"); self.assertEqual(f["model"], "inherit"); self.assertTrue(f["tools"] and f["description"])
+        roles = sorted((AOS / "roles").glob("*.md"))
+        self.assertGreaterEqual(len(roles), 10)                                    # role details kept as on-demand modules
+        for r in roles:
+            self.assertEqual(self.fm(r)["name"], r.stem)
+        self.assertTrue({"omega", "orchestrator", "testing-validator", "provider-handoff"} <= {r.stem for r in roles})
+        self.assertEqual([c.stem for c in (AOS / "commands").glob("*.md")], ["aos"])   # ONE command
+        self.assertTrue({"aos-optimize", "aos-scan", "aos-route", "aos-learn", "aos-fork", "aos-resume", "aos-handoff", "aos-audit", "aos-video"} <= {c.stem for c in (AOS / "roles" / "commands").glob("*.md")})
 
     def test_every_script_referenced_exists_and_has_help(self):
         import re, subprocess, sys
@@ -90,17 +89,34 @@ class PackageIntegrity(unittest.TestCase):
         a = (target / "AGENTS.md").read_text()
         self.assertIn("keep me", a)
         self.assertEqual(a.count(install.BEGIN), 1)
-        skill = (target / ".claude/skills/aos-optimize/SKILL.md").read_text()
+        skill = (target / ".claude/skills/aos/SKILL.md").read_text()
         self.assertIn(".claude/aos/scripts/memory.py", skill)
         self.assertNotIn(" aos/scripts/", skill)
+        agent = (target / ".claude/agents/aos.md").read_text()
+        self.assertIn(".claude/aos/scripts/omega.py", agent); self.assertNotIn(" aos/scripts/", agent)
+        for mod in (target / ".claude/skills/aos/modules").rglob("*.md"):
+            self.assertNotIn(" aos/scripts/", mod.read_text().replace("`aos/scripts/", " aos/scripts/").replace("`.claude", "") if False else mod.read_text().replace(".claude/aos/scripts/", ""), mod)
+        self.assertEqual(sorted(x.name for x in (target / ".claude/skills").iterdir()), ["aos"])
+        self.assertEqual(sorted(x.name for x in (target / ".claude/agents").iterdir()), ["aos.md"])
+        self.assertEqual(sorted(x.name for x in (target / ".claude/commands").iterdir()), ["aos.md"])
         self.assertTrue((target / ".claude/aos/scripts/route_task.py").exists())
         self.assertIn(".aos/", (target / ".gitignore").read_text().split())
         import subprocess, sys
         r = subprocess.run([sys.executable, ".claude/aos/scripts/route_task.py", "fix typo"], cwd=target, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         install.main(["--target", str(target), "--uninstall"])
-        self.assertFalse((target / ".claude/skills/aos-optimize").exists())
+        self.assertFalse((target / ".claude/skills/aos").exists()); self.assertFalse((target / ".claude/agents/aos.md").exists())
         self.assertEqual((target / "AGENTS.md").read_text().strip(), "# Mine\nkeep me")
+
+    def test_install_migrates_older_granular_layout(self):
+        target = helpers.make_repo({"README.md": "x"}, name="mig")
+        for old in (".claude/agents/orchestrator.md", ".claude/agents/omega.md", ".claude/commands/aos-route.md", ".claude/commands/omega.md", ".claude/skills/aos-optimize/SKILL.md"):
+            (target / old).parent.mkdir(parents=True, exist_ok=True); (target / old).write_text("old")
+        (target / ".claude/agents/my-own.md").write_text("mine")
+        install.main(["--target", str(target)])
+        self.assertFalse((target / ".claude/agents/orchestrator.md").exists()); self.assertFalse((target / ".claude/skills/aos-optimize").exists())
+        self.assertFalse((target / ".claude/commands/omega.md").exists())
+        self.assertEqual((target / ".claude/agents/my-own.md").read_text(), "mine")          # user's own agent untouched
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ def toml_str(v: str) -> str:
     return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def export(target: Path, in_place: bool = False, src: Path | None = None, prefix: str | None = ".codex/aos") -> dict:
+def export(target: Path, in_place: bool = False, src: Path | None = None, prefix: str | None = ".codex/aos", skills: bool = True) -> dict:
     src = src or AOS_DIR
     prefix = None if in_place else prefix
     out_skills = target / ".codex" / "skills"
@@ -46,7 +46,7 @@ def export(target: Path, in_place: bool = False, src: Path | None = None, prefix
     models = (__import__("aos_lib").parse_yaml((src / "config" / "models.yaml").read_text()).get("codex_model_map")) or {}
     made = {"skills": [], "agents": []}
     names = set()
-    for sk in sorted((src / "skills").glob("*/SKILL.md")):
+    for sk in (sorted((src / "skills").glob("*/SKILL.md")) if skills else []):
         fm, body = split_frontmatter(sk.read_text(encoding="utf-8"))
         d = out_skills / fm["name"]
         d.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,7 @@ def export(target: Path, in_place: bool = False, src: Path | None = None, prefix
                 (d / extra.relative_to(sk.parent)).write_bytes(extra.read_bytes())
         names.add(fm["name"])
         made["skills"].append(fm["name"])
-    for cm in sorted((src / "commands").glob("*.md")):       # Codex deprecated custom prompts in favour of skills (per adapter notes)
+    for cm in (sorted((src / "commands").glob("*.md")) if skills else []):       # Codex deprecated custom prompts in favour of skills (per adapter notes)
         if cm.stem in names:
             continue
         fm, body = split_frontmatter(cm.read_text(encoding="utf-8"))

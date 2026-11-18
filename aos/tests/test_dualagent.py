@@ -139,5 +139,32 @@ class Worktrees(unittest.TestCase):
         self.assertIn("**FAIL**", D.review_packet(wt, "claude", "baseline").read_text())
 
 
+@unittest.skipUnless(__import__("shutil").which("node"), "node not installed")
+class NodeLauncher(unittest.TestCase):
+    def setUp(self):
+        import shutil
+        self.r = repo()
+        shutil.copytree(helpers.AOS / "scripts", self.r / "aos" / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
+        (self.r / ".aos" / "dual").mkdir(parents=True); (self.r / ".aos/dual/role").write_text("claude")
+        self.hook = helpers.AOS / "templates" / "hooks" / "aos-hook.mjs"
+
+    def run_hook(self, kind, payload, cwd=None, home=None):
+        env = {k: v for k, v in os.environ.items() if k != "AOS_AGENT_ROLE"}
+        if home:
+            env["HOME"] = home; env["USERPROFILE"] = home
+        return subprocess.run(["node", str(self.hook), kind], input=json.dumps(payload), capture_output=True, text=True, cwd=cwd or self.r, env=env)
+
+    def test_blocks_allows_queues_and_fails_open(self):
+        p = self.run_hook("dual", {"tool_name": "Edit", "tool_input": {"file_path": str(self.r / "packages/contracts/a.ts")}, "cwd": str(self.r)})
+        self.assertEqual(p.returncode, 2); self.assertIn("owned by codex", p.stderr)
+        self.assertEqual(self.run_hook("dual", {"tool_name": "Write", "tool_input": {"file_path": str(self.r / "engines/invisible-market/n.ts")}, "cwd": str(self.r)}).returncode, 0)
+        q = self.run_hook("omega", {"tool_name": "Bash", "tool_input": {"command": "git push --force origin main"}, "cwd": str(self.r)})
+        self.assertEqual(q.returncode, 2); self.assertIn("queue", q.stderr)
+        empty = Path(tempfile.mkdtemp())
+        f = self.run_hook("dual", {"tool_name": "Edit", "tool_input": {"file_path": "x"}}, cwd=empty, home=str(empty))
+        self.assertEqual(f.returncode, 0); self.assertIn("guard skipped", f.stderr)                 # fails open, says so
+        self.assertEqual(self.run_hook("bogus", {}).returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

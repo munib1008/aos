@@ -29,6 +29,9 @@ AOS for both tools: `python3 aos/install.py --global --harness both` (Claude: `~
 | Continue a session in the other tool | `/codex:transfer` (Claude -> Codex) |
 | Unattended multi-cycle runs | `omega_runner.py run --tool claude|codex ...` (waits out usage limits) |
 
+## 3a. Hooks on Windows
+Use the Node launcher (`templates/hooks/aos-hook.mjs`, copy to `.claude/hooks/`): `node .claude/hooks/aos-hook.mjs dual` (ownership guard) and `... omega` (risky-Bash guard). It finds `py -3`, `python` or `python3` and the AOS runtime (`.claude/aos` or `~/.claude/aos`), forwards the block code (2), and fails open with a warning if either is missing. Without `dualagent.py init`, create the role file by hand: `mkdir .aos\dual` and write `claude` into `.aos\dual\role`.
+
 ## 3. Cautions
 - **Do not enable the plugin's stop-time review gate** (`/codex:setup --enable-review-gate`) in unattended or OMEGA runs: the plugin itself warns it can create a long Claude/Codex loop that drains usage limits.
 - `/codex:rescue` and `codex exec` write to the checkout they run in: run them in the owner's worktree, not the builder's.
